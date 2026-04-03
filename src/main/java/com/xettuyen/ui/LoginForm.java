@@ -3,6 +3,8 @@ package com.xettuyen.ui;
 import com.xettuyen.dao.UserDAO;
 import com.xettuyen.dao.DAOFactory;
 import com.xettuyen.entity.User;
+import com.xettuyen.util.HibernateUtil;
+import org.hibernate.Session;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
@@ -72,10 +74,46 @@ public class LoginForm extends JFrame {
     private JLabel               messageLabel;
     private boolean              passwordVisible = false;
     private EmojiIconButton      toggleBtn;
+    private volatile boolean     infrastructureReady = false;
 
     public LoginForm() {
         initComponents();
         setupUI();
+        warmUpInfrastructure();
+    }
+
+    /**
+     * Khởi tạo sẵn Hibernate/DB ở background để lần đăng nhập đầu không bị chậm.
+     */
+    private void warmUpInfrastructure() {
+        loginButton.setEnabled(false);
+        // showMessage("⏳ Đang khởi tạo kết nối hệ thống...", C_HINT);
+
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() {
+                DAOFactory.getUserDAO();
+                try (Session ignored = HibernateUtil.getSessionFactory().openSession()) {
+                    // no-op: chỉ mở/đóng session để warm-up driver + metadata
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    infrastructureReady = true;
+                    showMessage(" ", C_DANGER);
+                } catch (Exception ex) {
+                    showMessage("❌ Không thể khởi tạo CSDL: " + ex.getMessage(), C_DANGER);
+                } finally {
+                    loginButton.setEnabled(true);
+                }
+            }
+        };
+
+        worker.execute();
     }
 
     // ══════════════════════════════════════════════════════
@@ -280,26 +318,43 @@ public class LoginForm extends JFrame {
                 return;
             }
 
-            try {
-                UserDAO userDAO = DAOFactory.getUserDAO();
-                User    user    = userDAO.login(username, password);
+            loginButton.setEnabled(false);
+            String waitMsg = infrastructureReady
+                    ? "⏳ Đang xác thực tài khoản..."
+                    : "⏳ Đang khởi tạo kết nối và xác thực...";
+            showMessage(waitMsg, C_HINT);
 
-                if (user != null) {
-                    showMessage("✅ Đăng nhập thành công!", C_SUCCESS);
-                    Timer t = new Timer(500, ev -> {
-                        LoginForm.this.dispose();
-                        new MainFrame(user.getUsername(), user.getRole()).setVisible(true);
-                    });
-                    t.setRepeats(false);
-                    t.start();
-                } else {
-                    showMessage("❌ Tên đăng nhập hoặc mật khẩu không đúng!", C_DANGER);
-                    passwordField.setText("");
+            SwingWorker<User, Void> worker = new SwingWorker<>() {
+                @Override
+                protected User doInBackground() {
+                    UserDAO userDAO = DAOFactory.getUserDAO();
+                    return userDAO.login(username, password);
                 }
-            } catch (Exception ex) {
-                showMessage("❌ Lỗi hệ thống: " + ex.getMessage(), C_DANGER);
-                ex.printStackTrace();
-            }
+
+                @Override
+                protected void done() {
+                    loginButton.setEnabled(true);
+                    try {
+                        User user = get();
+                        if (user != null) {
+                            showMessage(" Đăng nhập thành công!", C_SUCCESS);
+                            Timer t = new Timer(500, ev -> {
+                                LoginForm.this.dispose();
+                                new MainFrame(user.getUsername(), user.getRole()).setVisible(true);
+                            });
+                            t.setRepeats(false);
+                            t.start();
+                        } else {
+                            showMessage(" Tên đăng nhập hoặc mật khẩu không đúng!", C_DANGER);
+                            passwordField.setText("");
+                        }
+                    } catch (Exception ex) {
+                        showMessage("❌ Lỗi hệ thống: " + ex.getMessage(), C_DANGER);
+                        ex.printStackTrace();
+                    }
+                }
+            };
+            worker.execute();
         }
     }
 

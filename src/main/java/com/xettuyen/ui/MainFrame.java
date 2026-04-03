@@ -323,7 +323,8 @@ public class MainFrame extends JFrame {
 
         // ── Menu items ──
         int itemH = clamp(vh(5.5f), 40, 58);
-        addSidebarItem(sidebar, "🏠", "Trang Chủ",         "HOME",       itemH, false);
+        SidebarButton homeBtn = addSidebarItem(sidebar, "🏠", "Trang Chủ", "HOME", itemH, false);
+        homeBtn.setActive(true);
         addSidebarItem(sidebar, "👥", "Quản Lý Thí Sinh",  "THI_SINH",   itemH, false);
         addSidebarItem(sidebar, "🎓", "Quản Lý Ngành",     "NGANH",      itemH, false);
         addSidebarItem(sidebar, "📊", "Quản Lý Điểm",      "DIEM",       itemH, false);
@@ -348,7 +349,7 @@ public class MainFrame extends JFrame {
         return sidebar;
     }
 
-    private void addSidebarItem(JPanel sidebar, String emoji, String label,
+    private SidebarButton addSidebarItem(JPanel sidebar, String emoji, String label,
                                  String card, int itemH, boolean isDanger) {
         SidebarButton btn = new SidebarButton(emoji, label, card, itemH, isDanger);
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -356,6 +357,7 @@ public class MainFrame extends JFrame {
         btn.addActionListener(e -> switchCard(card, label, btn));
         sidebar.add(btn);
         sidebar.add(Box.createVerticalStrut(clamp(vh(0.5f), 3, 7)));
+        return btn;
     }
 
     private void switchCard(String card, String label, SidebarButton clicked) {
