@@ -8,7 +8,7 @@ import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.geom.Area;
 import java.awt.geom.Rectangle2D;
-
+import com.xettuyen.ui.panel.*;
 /**
  * MainFrame – Modern Redesign (đồng bộ với LoginForm v2)
  *
@@ -46,25 +46,25 @@ import java.awt.geom.Rectangle2D;
 public class MainFrame extends JFrame {
 
     // ── Bảng màu (đồng bộ LoginForm) ──────────────────────
-    private static final Color C_PRIMARY      = new Color(0x00, 0x62, 0xFF);
-    private static final Color C_PRIMARY_HV   = new Color(0x00, 0x4E, 0xCC);
-    private static final Color C_SIDEBAR_TOP  = new Color(0x0A, 0x16, 0x28);
-    private static final Color C_SIDEBAR_BOT  = new Color(0x0E, 0x20, 0x40);
-    private static final Color C_SIDEBAR_ITEM = new Color(0xFF, 0xFF, 0xFF, 30);
-    private static final Color C_SIDEBAR_HV   = new Color(0xFF, 0xFF, 0xFF, 55);
-    private static final Color C_SIDEBAR_ACT  = new Color(0x00, 0x62, 0xFF);
-    private static final Color C_SIDEBAR_TEXT = new Color(0xC8, 0xD8, 0xF0);
-    private static final Color C_SIDEBAR_ATXT = Color.WHITE;
-    private static final Color C_CONTENT_BG   = new Color(0xF0, 0xF4, 0xFF);
-    private static final Color C_CARD         = Color.WHITE;
-    private static final Color C_BORDER       = new Color(0xE0, 0xE8, 0xFF);
-    private static final Color C_TITLE        = new Color(0x12, 0x12, 0x14);
-    private static final Color C_TEXT         = new Color(0x37, 0x37, 0x3A);
-    private static final Color C_HINT         = new Color(0x7A, 0x8A, 0xAA);
-    private static final Color C_DANGER       = new Color(0xDC, 0x35, 0x45);
-    private static final Color C_DANGER_HV    = new Color(0xB0, 0x2A, 0x37);
-    private static final Color C_SUCCESS      = new Color(0x19, 0x87, 0x54);
-    private static final Color C_WARNING      = new Color(0xFF, 0x8C, 0x00);
+    public static final Color C_PRIMARY      = new Color(0x00, 0x62, 0xFF);
+    public static final Color C_PRIMARY_HV   = new Color(0x00, 0x4E, 0xCC);
+    public static final Color C_SIDEBAR_TOP  = new Color(0x0A, 0x16, 0x28);
+    public static final Color C_SIDEBAR_BOT  = new Color(0x0E, 0x20, 0x40);
+    public static final Color C_SIDEBAR_ITEM = new Color(0xFF, 0xFF, 0xFF, 30);
+    public static final Color C_SIDEBAR_HV   = new Color(0xFF, 0xFF, 0xFF, 55);
+    public static final Color C_SIDEBAR_ACT  = new Color(0x00, 0x62, 0xFF);
+    public static final Color C_SIDEBAR_TEXT = new Color(0xC8, 0xD8, 0xF0);
+    public static final Color C_SIDEBAR_ATXT = Color.WHITE;
+    public static final Color C_CONTENT_BG   = new Color(0xF0, 0xF4, 0xFF);
+    public static final Color C_CARD         = Color.WHITE;
+    public static final Color C_BORDER       = new Color(0xE0, 0xE8, 0xFF);
+    public static final Color C_TITLE        = new Color(0x12, 0x12, 0x14);
+    public static final Color C_TEXT         = new Color(0x37, 0x37, 0x3A);
+    public static final Color C_HINT         = new Color(0x7A, 0x8A, 0xAA);
+    public static final Color C_DANGER       = new Color(0xDC, 0x35, 0x45);
+    public static final Color C_DANGER_HV    = new Color(0xB0, 0x2A, 0x37);
+    public static final Color C_SUCCESS      = new Color(0x19, 0x87, 0x54);
+    public static final Color C_WARNING      = new Color(0xFF, 0x8C, 0x00);
 
     // ── Scale helpers ──────────────────────────────────────
     private static final int   SW;
@@ -74,9 +74,9 @@ public class MainFrame extends JFrame {
         SW = scr.width;
         SH = scr.height;
     }
-    private static int vw(float p)  { return Math.round(SW * p / 100f); }
-    private static int vh(float p)  { return Math.round(SH * p / 100f); }
-    private static int clamp(int v, int lo, int hi) { return Math.max(lo, Math.min(hi, v)); }
+    public static int vw(float p)  { return Math.round(SW * p / 100f); }
+    public static int vh(float p)  { return Math.round(SH * p / 100f); }
+    public static int clamp(int v, int lo, int hi) { return Math.max(lo, Math.min(hi, v)); }
 
     // ── State ─────────────────────────────────────────────
     private final String currentUser;
@@ -145,7 +145,7 @@ public class MainFrame extends JFrame {
         };
         hdr.setOpaque(false);
         hdr.setPreferredSize(new Dimension(0, hdrH));
-        int padH = (hdrH - clamp(vh(2.5f), 18, 26)) / 2;
+        int padH = clamp(vh(1.2f), 8, 14); // Padding trên/dưới mỏng lại một chút
         int padW = clamp(vw(1.5f), 16, 28);
         hdr.setBorder(new EmptyBorder(padH, padW, padH, padW));
 
@@ -389,7 +389,7 @@ public class MainFrame extends JFrame {
         contentPanel = new JPanel(cardLayout);
         contentPanel.setBackground(C_CONTENT_BG);
 
-        homePanel       = createHomePanel();
+        homePanel       = new HomePanel(currentUser);
         thiSinhPanel    = createPlaceholderPanel("👥", "Quản Lý Thí Sinh",
                 new String[]{"Danh sách thí sinh","Thêm / Sửa / Xóa","Tìm kiếm nâng cao","Import từ Excel"});
         nganhPanel      = createPlaceholderPanel("🎓", "Quản Lý Ngành",
@@ -409,138 +409,6 @@ public class MainFrame extends JFrame {
         contentPanel.add(userPanel,       "USER");
 
         return contentPanel;
-    }
-
-    // ── Home Panel ────────────────────────────────────────
-    private JPanel createHomePanel() {
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(C_CONTENT_BG);
-        int pad = clamp(vw(2), 20, 36);
-        outer.setBorder(new EmptyBorder(pad, pad, pad, pad));
-
-        // Welcome card
-        JPanel welcomeCard = makeCard();
-        welcomeCard.setLayout(new BorderLayout(0, clamp(vh(1.5f), 10, 18)));
-        int cardPad = clamp(vw(1.5f), 16, 26);
-        welcomeCard.setBorder(new EmptyBorder(cardPad, cardPad, cardPad, cardPad));
-
-        JLabel wIcon = new JLabel("👋");
-        wIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, clamp(vh(4), 28, 44)));
-        JLabel wTitle = new JLabel("Chào mừng trở lại, " + currentUser + "!");
-        wTitle.setFont(new Font("Segoe UI", Font.BOLD, clamp(vh(2.5f), 16, 24)));
-        wTitle.setForeground(C_TITLE);
-        JLabel wSub = new JLabel("Hôm nay bạn muốn làm gì? Chọn một chức năng từ menu bên trái.");
-        wSub.setFont(new Font("Segoe UI", Font.PLAIN, clamp(vh(1.7f), 11, 15)));
-        wSub.setForeground(C_HINT);
-
-        JPanel wText = new JPanel();
-        wText.setLayout(new BoxLayout(wText, BoxLayout.Y_AXIS));
-        wText.setOpaque(false);
-        wText.add(wTitle);
-        wText.add(Box.createVerticalStrut(4));
-        wText.add(wSub);
-
-        welcomeCard.add(wIcon,  BorderLayout.WEST);
-        welcomeCard.add(Box.createHorizontalStrut(clamp(vw(1), 10, 16)), BorderLayout.CENTER);
-        welcomeCard.add(wText,  BorderLayout.EAST);
-
-        // Workaround BorderLayout: use proper layout
-        welcomeCard.setLayout(new FlowLayout(FlowLayout.LEFT, clamp(vw(1), 10, 16), cardPad));
-        welcomeCard.removeAll();
-        welcomeCard.add(wIcon);
-        welcomeCard.add(wText);
-
-        // Stats row
-        JPanel statsRow = new JPanel(new GridLayout(1, 4, clamp(vw(1), 10, 18), 0));
-        statsRow.setOpaque(false);
-        statsRow.add(makeStatCard("📁", "Tổng Thí Sinh",   "—", C_PRIMARY));
-        statsRow.add(makeStatCard("🎓", "Ngành Học",        "—", C_SUCCESS));
-        statsRow.add(makeStatCard("📋", "Nguyện Vọng",      "—", C_WARNING));
-        statsRow.add(makeStatCard("✅", "Trúng Tuyển",      "—", new Color(0x6C, 0x3F, 0xEB)));
-
-        // Info text
-        JPanel infoCard = makeCard();
-        infoCard.setLayout(new BoxLayout(infoCard, BoxLayout.Y_AXIS));
-        infoCard.setBorder(new EmptyBorder(cardPad, cardPad, cardPad, cardPad));
-
-        JLabel infoTitle = new JLabel("Về Hệ Thống");
-        infoTitle.setFont(new Font("Segoe UI", Font.BOLD, clamp(vh(2f), 13, 18)));
-        infoTitle.setForeground(C_TITLE);
-        infoTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        infoCard.add(infoTitle);
-        infoCard.add(Box.createVerticalStrut(clamp(vh(1.2f), 8, 14)));
-
-        String[] lines = {
-            "• Quản lý toàn bộ thông tin thí sinh đăng ký xét tuyển.",
-            "• Cấu hình ngành học, tổ hợp môn và chỉ tiêu tuyển sinh.",
-            "• Nhập, kiểm tra và xử lý điểm thi THPT Quốc Gia.",
-            "• Quản lý và xét duyệt nguyện vọng của từng thí sinh.",
-            "• Xuất báo cáo kết quả xét tuyển theo nhiều định dạng."
-        };
-        for (String line : lines) {
-            JLabel l = new JLabel(line);
-            l.setFont(new Font("Segoe UI", Font.PLAIN, clamp(vh(1.6f), 11, 14)));
-            l.setForeground(C_TEXT);
-            l.setAlignmentX(Component.LEFT_ALIGNMENT);
-            l.setBorder(new EmptyBorder(2, 0, 2, 0));
-            infoCard.add(l);
-        }
-
-        JPanel center = new JPanel();
-        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
-        center.setOpaque(false);
-        center.add(welcomeCard);
-        center.add(Box.createVerticalStrut(clamp(vh(1.5f), 12, 20)));
-        center.add(statsRow);
-        center.add(Box.createVerticalStrut(clamp(vh(1.5f), 12, 20)));
-        center.add(infoCard);
-
-        outer.add(center, BorderLayout.NORTH);
-        return outer;
-    }
-
-    private JPanel makeStatCard(String icon, String title, String value, Color accentColor) {
-        JPanel card = makeCard();
-        card.setLayout(new BorderLayout(0, 0));
-        int p = clamp(vw(1.2f), 12, 20);
-        card.setBorder(new EmptyBorder(p, p, p, p));
-
-        // Left accent bar
-        JComponent accent = new JComponent() {
-            { setPreferredSize(new Dimension(4, 0)); setOpaque(false); }
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(accentColor);
-                g2.fill(new RoundRectangle2D.Float(0, 4, 4, getHeight() - 8, 4, 4));
-                g2.dispose();
-            }
-        };
-
-        JPanel text = new JPanel();
-        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
-        text.setOpaque(false);
-        text.setBorder(new EmptyBorder(0, p / 2, 0, 0));
-
-        JLabel iconLbl = new JLabel(icon);
-        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, clamp(vh(2.8f), 20, 30)));
-
-        JLabel valueLbl = new JLabel(value);
-        valueLbl.setFont(new Font("Segoe UI", Font.BOLD, clamp(vh(2.8f), 20, 30)));
-        valueLbl.setForeground(C_TITLE);
-
-        JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(new Font("Segoe UI", Font.PLAIN, clamp(vh(1.5f), 10, 13)));
-        titleLbl.setForeground(C_HINT);
-
-        text.add(iconLbl);
-        text.add(Box.createVerticalStrut(4));
-        text.add(valueLbl);
-        text.add(titleLbl);
-
-        card.add(accent, BorderLayout.WEST);
-        card.add(text,   BorderLayout.CENTER);
-        return card;
     }
 
     // ── Placeholder panels ────────────────────────────────
@@ -641,7 +509,7 @@ public class MainFrame extends JFrame {
     }
 
     // ── Card factory ──────────────────────────────────────
-    private JPanel makeCard() {
+    public static JPanel makeCard() {
         return new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
