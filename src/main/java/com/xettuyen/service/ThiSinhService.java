@@ -2,6 +2,7 @@ package com.xettuyen.service;
 
 import com.xettuyen.dao.*;
 import com.xettuyen.entity.*;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -52,6 +53,32 @@ public class ThiSinhService {
             thiSinh.setEmail(newEmail);
             thiSinhDAO.update(thiSinh);
         }
+    }
+
+    /**
+     * Cập nhật thông tin hồ sơ của thí sinh theo ID.
+     * ID là khóa định danh và không được phép thay đổi qua form chỉnh sửa.
+     */
+    public void updateThiSinhInfo(Integer idThiSinh, ThiSinhXettuyen updatedThiSinh) {
+        ThiSinhXettuyen thiSinh = thiSinhDAO.findById(ThiSinhXettuyen.class, idThiSinh);
+        if (thiSinh == null || updatedThiSinh == null) {
+            return;
+        }
+
+        thiSinh.setCccd(updatedThiSinh.getCccd());
+        thiSinh.setSoBaoDanh(updatedThiSinh.getSoBaoDanh());
+        thiSinh.setHo(updatedThiSinh.getHo());
+        thiSinh.setTen(updatedThiSinh.getTen());
+        thiSinh.setNgaySinh(updatedThiSinh.getNgaySinh());
+        thiSinh.setDienThoai(updatedThiSinh.getDienThoai());
+        thiSinh.setGioiTinh(updatedThiSinh.getGioiTinh());
+        thiSinh.setEmail(updatedThiSinh.getEmail());
+        thiSinh.setNoiSinh(updatedThiSinh.getNoiSinh());
+        thiSinh.setDoiTuong(updatedThiSinh.getDoiTuong());
+        thiSinh.setKhuVuc(updatedThiSinh.getKhuVuc());
+        thiSinh.setUpdatedAt(new Date());
+
+        thiSinhDAO.update(thiSinh);
     }
 
     /**
