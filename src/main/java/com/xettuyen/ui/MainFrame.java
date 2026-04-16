@@ -390,16 +390,14 @@ public class MainFrame extends JFrame {
         contentPanel.setBackground(C_CONTENT_BG);
 
         homePanel       = new HomePanel(currentUser);
-        thiSinhPanel    = createPlaceholderPanel("👥", "Quản Lý Thí Sinh",
-                new String[]{"Danh sách thí sinh","Thêm / Sửa / Xóa","Tìm kiếm nâng cao","Import từ Excel"});
+        thiSinhPanel    = new CandidateManagementPanel();
         nganhPanel      = createPlaceholderPanel("🎓", "Quản Lý Ngành",
                 new String[]{"Danh sách ngành học","Thêm / Sửa / Xóa ngành","Quản lý tổ hợp môn","Bảng quy đổi điểm"});
         diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
                 new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});
         nguyenVongPanel = createPlaceholderPanel("📋", "Quản Lý Nguyện Vọng",
                 new String[]{"Danh sách nguyện vọng","Nhập nguyện vọng","Tính điểm xét tuyển","Kết quả trúng tuyển"});
-        userPanel       = createPlaceholderPanel("👤", "Quản Lý Hệ Thống",
-                new String[]{"Tài khoản người dùng","Phân quyền","Nhật ký hoạt động","Cấu hình hệ thống"});
+        userPanel       = new UserManagementPanel();
 
         contentPanel.add(homePanel,       "HOME");
         contentPanel.add(thiSinhPanel,    "THI_SINH");
