@@ -1,28 +1,13 @@
 package com.xettuyen.ui.panel;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.border.EmptyBorder;
-
 import com.xettuyen.entity.DiemCongXettuyen;
 import com.xettuyen.ui.MainFrame;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 
 public class DiemCongDialog extends JDialog {
-    private JTextField txtCCCD, txtMaNganh, txtMaToHop, txtPhuongThuc, txtDiemCC, txtDiemUT;
+    private JTextField txtCCCD, txtMaNganh, txtMaToHop, txtPhuongThuc, txtDiemCC, txtDiemUT, txtGhiChu;
     private JButton btnSave, btnCancel;
     private boolean confirmed = false;
     private DiemCongXettuyen diemCong;
@@ -30,136 +15,95 @@ public class DiemCongDialog extends JDialog {
     public DiemCongDialog(Frame parent, DiemCongXettuyen dc) {
         super(parent, "Thông Tin Điểm Ưu Tiên", true);
         this.diemCong = (dc == null) ? new DiemCongXettuyen() : dc;
-        
         setLayout(new BorderLayout());
-        getContentPane().setBackground(Color.WHITE);
 
-        // 1. HEADER (Giống trang Quản lý điểm thi)
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(MainFrame.C_PRIMARY);
-        JLabel lblHeader = new JLabel("CẬP NHẬT ĐIỂM ƯU TIÊN");
-        lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblHeader.setForeground(Color.WHITE);
-        headerPanel.add(lblHeader);
-        headerPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
-        add(headerPanel, BorderLayout.NORTH);
+        // HEADER
+        JPanel header = new JPanel();
+        header.setBackground(MainFrame.C_PRIMARY);
+        JLabel lbl = new JLabel("CHI TIẾT ĐIỂM CỘNG & ƯU TIÊN");
+        lbl.setForeground(Color.WHITE);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        header.setBorder(new EmptyBorder(12, 0, 12, 0));
+        header.add(lbl);
+        add(header, BorderLayout.NORTH);
 
-        // 2. FORM NHẬP LIỆU (Sử dụng GridBagLayout để căn chỉnh đẹp)
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setBorder(new EmptyBorder(25, 30, 25, 30));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(10, 10, 10, 10);
+        // FORM
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBackground(Color.WHITE);
+        form.setBorder(new EmptyBorder(25, 40, 25, 40));
+        GridBagConstraints g = new GridBagConstraints();
+        g.fill = GridBagConstraints.HORIZONTAL;
+        g.insets = new Insets(10, 10, 10, 10);
 
-        // Khởi tạo các ô nhập
-        txtCCCD = createStyledField(diemCong.getTsCccd());
-        if (diemCong.getTsCccd() != null && !diemCong.getTsCccd().isEmpty()) {
-            txtCCCD.setEditable(false); // Khóa CCCD khi sửa
-            txtCCCD.setBackground(new Color(245, 245, 245));
-        }
-        
-        txtMaNganh = createStyledField(diemCong.getMaNganh());
-        txtMaToHop = createStyledField(diemCong.getMaTohop());
-        txtPhuongThuc = createStyledField(diemCong.getPhuongThuc());
-        txtDiemCC = createStyledField(formatDiem(diemCong.getDiemCc()));
-        txtDiemUT = createStyledField(formatDiem(diemCong.getDiemUtxt()));
+        txtCCCD = createField(diemCong.getTsCccd(), true);
+        txtMaNganh = createField(diemCong.getMaNganh(), true);
+        txtMaToHop = createField(diemCong.getMaTohop(), true);
+        txtPhuongThuc = createField(diemCong.getPhuongThuc(), true);
+        txtDiemCC = createField(f(diemCong.getDiemCc()), true);
+        txtDiemUT = createField(f(diemCong.getDiemUtxt()), true);
+        txtGhiChu = createField(diemCong.getGhiChu(), true);
 
-        // Add components vào Grid
-        // Dòng 0: CCCD
-        gbc.gridx = 0; gbc.gridy = 0; formPanel.add(new JLabel("CCCD Thí sinh:"), gbc);
-        gbc.gridx = 1; gbc.gridwidth = 3; formPanel.add(txtCCCD, gbc);
-        gbc.gridwidth = 1; // Reset width
+        // Layout các trường
+        addF(form, "CCCD Thí sinh:", txtCCCD, 0, g);
+        addF(form, "Mã Ngành:", txtMaNganh, 1, g);
+        addF(form, "Mã Tổ Hợp:", txtMaToHop, 2, g);
+        addF(form, "Phương Thức:", txtPhuongThuc, 3, g);
+        addF(form, "Điểm Chứng chỉ:", txtDiemCC, 4, g);
+        addF(form, "Điểm Ưu tiên:", txtDiemUT, 5, g);
+        addF(form, "Ghi chú:", txtGhiChu, 6, g);
 
-        // Dòng 1: Mã Ngành - Mã Tổ Hợp
-        gbc.gridx = 0; gbc.gridy = 1; formPanel.add(new JLabel("Mã Ngành:"), gbc);
-        gbc.gridx = 1; formPanel.add(txtMaNganh, gbc);
-        gbc.gridx = 2; formPanel.add(new JLabel("Mã Tổ Hợp:"), gbc);
-        gbc.gridx = 3; formPanel.add(txtMaToHop, gbc);
+        add(form, BorderLayout.CENTER);
 
-        // Dòng 2: Phương thức - (Trống)
-        gbc.gridx = 0; gbc.gridy = 2; formPanel.add(new JLabel("Phương thức:"), gbc);
-        gbc.gridx = 1; formPanel.add(txtPhuongThuc, gbc);
-
-        // Dòng 3: Điểm Chứng Chỉ (CC) - Điểm Ưu Tiên (UT)
-        gbc.gridx = 0; gbc.gridy = 3; formPanel.add(new JLabel("Điểm Chứng chỉ:"), gbc);
-        gbc.gridx = 1; formPanel.add(txtDiemCC, gbc);
-        gbc.gridx = 2; formPanel.add(new JLabel("Điểm Ưu tiên:"), gbc);
-        gbc.gridx = 3; formPanel.add(txtDiemUT, gbc);
-
-        add(formPanel, BorderLayout.CENTER);
-
-        // 3. NÚT CHỨC NĂNG (Dưới cùng)
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
-        btnPanel.setBackground(new Color(250, 250, 250));
-
-        btnCancel = new JButton("Hủy bỏ");
-        btnCancel.setPreferredSize(new Dimension(100, 35));
-        btnCancel.setFocusPainted(false);
-        btnCancel.addActionListener(e -> dispose());
-
+        // FOOTER
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 15));
         btnSave = new JButton("Lưu dữ liệu");
+        btnSave.setPreferredSize(new Dimension(120, 35));
         btnSave.setBackground(MainFrame.C_PRIMARY);
         btnSave.setForeground(Color.WHITE);
-        btnSave.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnSave.setPreferredSize(new Dimension(120, 35));
-        btnSave.setFocusPainted(false);
-        btnSave.setBorderPainted(false);
-        btnSave.addActionListener(e -> handleSave());
+        btnCancel = new JButton("Hủy");
+        btnCancel.setPreferredSize(new Dimension(80, 35));
 
-        btnPanel.add(btnCancel);
-        btnPanel.add(btnSave);
-        add(btnPanel, BorderLayout.SOUTH);
+        btnSave.addActionListener(e -> {
+            diemCong.setTsCccd(txtCCCD.getText().trim());
+            diemCong.setMaNganh(txtMaNganh.getText().trim());
+            diemCong.setMaTohop(txtMaToHop.getText().trim());
+            diemCong.setPhuongThuc(txtPhuongThuc.getText().trim());
+            diemCong.setDiemCc(p(txtDiemCC.getText()));
+            diemCong.setDiemUtxt(p(txtDiemUT.getText()));
+            diemCong.setDiemTong((diemCong.getDiemCc() != null ? diemCong.getDiemCc() : 0) + (diemCong.getDiemUtxt() != null ? diemCong.getDiemUtxt() : 0));
+            diemCong.setGhiChu(txtGhiChu.getText().trim());
+            diemCong.setDcKeys(diemCong.getTsCccd() + "_" + diemCong.getMaNganh() + "_" + diemCong.getMaTohop());
+            confirmed = true; dispose();
+        });
+
+        btnCancel.addActionListener(e -> dispose());
+        footer.add(btnCancel); footer.add(btnSave);
+        add(footer, BorderLayout.SOUTH);
 
         pack();
         setResizable(false);
         setLocationRelativeTo(parent);
     }
 
-    private JTextField createStyledField(String value) {
-        JTextField field = new JTextField(value != null ? value : "");
-        field.setPreferredSize(new Dimension(150, 30));
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        return field;
+    private JTextField createField(String val, boolean editable) {
+        JTextField f = new JTextField(val, 20);
+        f.setPreferredSize(new Dimension(250, 30));
+        f.setEditable(editable);
+        if(!editable) f.setBackground(new Color(240, 240, 240));
+        return f;
     }
 
-    private String formatDiem(Double d) {
-        if (d == null) return "0.0";
-        return String.valueOf(d);
+    private void addF(JPanel p, String label, JTextField c, int y, GridBagConstraints g) {
+        g.gridx = 0; g.gridy = y;
+        g.anchor = GridBagConstraints.EAST; // Nhãn căn lề phải
+        p.add(new JLabel(label), g);
+        g.gridx = 1;
+        g.anchor = GridBagConstraints.WEST;
+        p.add(c, g);
     }
 
-    private void handleSave() {
-        try {
-            String cccd = txtCCCD.getText().trim();
-            String manganh = txtMaNganh.getText().trim();
-            
-            if (cccd.isEmpty() || manganh.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ CCCD và Mã Ngành!");
-                return;
-            }
-
-            // Gán giá trị vào Entity
-            diemCong.setTsCccd(txtCCCD.getText().trim());
-            diemCong.setMaNganh(txtMaNganh.getText().trim());
-            diemCong.setMaTohop(txtMaToHop.getText().trim());
-            diemCong.setPhuongThuc(txtPhuongThuc.getText().trim());
-        
-            double dCC = Double.parseDouble(txtDiemCC.getText().trim());
-            double dUT = Double.parseDouble(txtDiemUT.getText().trim());
-            diemCong.setDiemCc(dCC);
-            diemCong.setDiemUtxt(dUT);
-            diemCong.setDiemTong(dCC + dUT);
-            
-            // Tạo key duy nhất để tránh trùng lặp
-            diemCong.setDcKeys(diemCong.getTsCccd() + "_" + diemCong.getMaNganh() + "_" + diemCong.getMaTohop());
-
-            confirmed = true;
-            dispose();
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Lỗi: Điểm phải là số (VD: 1.0)!");
-        }
-    }
-
+    private String f(Double d) { return (d == null) ? "" : String.valueOf(d); }
+    private Double p(String s) { try { return Double.parseDouble(s); } catch(Exception e) { return 0.0; } }
     public boolean isConfirmed() { return confirmed; }
     public DiemCongXettuyen getDiemCong() { return diemCong; }
 }
