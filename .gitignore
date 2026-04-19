@@ -8,7 +8,7 @@
 /.idea/
 *.iml
 /.vscode/
-
+node_modules/
 # OS files
 .DS_Store
 Thumbs.db
