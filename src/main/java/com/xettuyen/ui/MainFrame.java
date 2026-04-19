@@ -394,8 +394,9 @@ public class MainFrame extends JFrame {
                 new String[]{"Danh sách thí sinh","Thêm / Sửa / Xóa","Tìm kiếm nâng cao","Import từ Excel"});
         nganhPanel      = createPlaceholderPanel("🎓", "Quản Lý Ngành",
                 new String[]{"Danh sách ngành học","Thêm / Sửa / Xóa ngành","Quản lý tổ hợp môn","Bảng quy đổi điểm"});
-        diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
-                new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});
+        diemPanel = new DiemPanel();
+        /* diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
+                new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});*/
         nguyenVongPanel = createPlaceholderPanel("📋", "Quản Lý Nguyện Vọng",
                 new String[]{"Danh sách nguyện vọng","Nhập nguyện vọng","Tính điểm xét tuyển","Kết quả trúng tuyển"});
         userPanel       = createPlaceholderPanel("👤", "Quản Lý Hệ Thống",

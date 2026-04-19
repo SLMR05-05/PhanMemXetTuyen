@@ -1,5 +1,6 @@
 package com.xettuyen.service;
 
+import com.xettuyen.entity.DiemCongXettuyen;
 import com.xettuyen.entity.ThiSinhXettuyen;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -147,6 +148,57 @@ public class ExcelImportService {
         return diemThiList;
     }
 
+    public java.util.List<com.xettuyen.entity.DiemCongXettuyen> importDiemCong(String filePath) {
+        List<com.xettuyen.entity.DiemCongXettuyen> diemCongList = new ArrayList<>();
+        
+        try (FileInputStream file = new FileInputStream(filePath);
+             Workbook workbook = new XSSFWorkbook(file)) {
+            
+            Sheet sheet = workbook.getSheetAt(0);
+            int rowCount = 0;
+            
+            // Bỏ qua dòng header (dòng 0)
+            for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
+                Row row = sheet.getRow(i);
+                
+                if (row == null || isRowEmpty(row)) {
+                    continue;
+                }
+                
+                try {
+                    com.xettuyen.entity.DiemCongXettuyen diemCong = new com.xettuyen.entity.DiemCongXettuyen();
+                    
+                    diemCong.setTsCccd(getCellValueAsString(row, 0));
+                    diemCong.setMaNganh(getCellValueAsString(row, 1));
+                    diemCong.setMaTohop(getCellValueAsString(row, 2));
+                    diemCong.setPhuongThuc(getCellValueAsString(row, 3));
+                    diemCong.setDiemCc(getCellValueAsDouble(row, 4));
+                    diemCong.setDiemUtxt(getCellValueAsDouble(row, 5));
+                    diemCong.setDiemTong(diemCong.getDiemCc() + diemCong.getDiemUtxt());
+                    diemCong.setDcKeys(diemCong.getTsCccd() + "_" + diemCong.getMaNganh());
+                    
+                    diemCongList.add(diemCong);
+                    rowCount++;
+                    
+                } catch (Exception e) {
+                    System.err.println("⚠️ Lỗi khi xử lý dòng " + (i + 1) + ": " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            
+            System.out.println("✅ Import thành công " + rowCount + " bản ghi điểm cộng từ " + filePath);
+            
+        } catch (IOException e) {
+            System.err.println("❌ Lỗi khi đọc file " + filePath + ": " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi không xác định khi import điểm cộng: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return diemCongList;
+    }
+    
     /**
      * Import danh sách nguyện vọng từ file Excel
      * Định dạng Excel: [CCCD] [MaNganh] [ThuTu] [PhuongThuc] [Ghi Chu]
