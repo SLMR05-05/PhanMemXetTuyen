@@ -1,0 +1,190 @@
+#!/bin/bash
+# Tree view of xettuyen-web structure
+
+xettuyen-web/
+├── 📄 .eslintrc.cjs                 # ESLint configuration
+├── 📄 .gitignore                    # Git ignore rules
+├── 📄 API_INTEGRATION.md            # API endpoints documentation
+├── 📄 ARCHITECTURE.md               # System architecture guide
+├── 📄 INSTALLATION.md               # Detailed installation steps
+├── 📄 PROJECT_SUMMARY.md            # Project summary & status
+├── 📄 QUICK_START.md                # 5-minute quick start
+├── 📄 README.md                     # Main documentation
+├── 📄 index.html                    # HTML entry point
+├── 📄 jsconfig.json                 # JS config with path aliases
+├── 📄 package.json                  # Dependencies & scripts
+├── 📄 postcss.config.js             # PostCSS configuration
+├── 📄 tailwind.config.js            # Tailwind CSS theme
+├── 📄 tsconfig.json                 # TypeScript config (optional)
+├── 📄 vite.config.js                # Vite build config
+│
+├── 📂 public/                       # Static assets folder
+│   └── (placeholder for static files)
+│
+└── 📂 src/                          # Source code folder
+    │
+    ├── 📄 App.jsx                   # Main App component with routing
+    ├── 📄 main.jsx                  # React DOM render entry point
+    │
+    ├── 📂 pages/                    # Page components
+    │   ├── 📄 LoginPage.jsx         # Login page component
+    │   └── 📄 DashboardPage.jsx     # Dashboard main page
+    │
+    ├── 📂 components/               # Reusable UI components
+    │   ├── 📄 Header.jsx            # Top header with logout
+    │   ├── 📄 NguyenVongForm.jsx    # Form to add preferences
+    │   ├── 📄 NguyenVongList.jsx    # Table displaying preferences
+    │   └── 📄 ProtectedRoute.jsx    # Route protection wrapper
+    │
+    ├── 📂 services/                 # API service layer
+    │   ├── 📄 api.js                # Axios instance base config
+    │   ├── 📄 authService.js        # Authentication API calls
+    │   ├── 📄 nganyService.js       # Major/Ngành API calls
+    │   └── 📄 nguyenVongService.js  # Preference API calls
+    │
+    ├── 📂 context/                  # Zustand state stores
+    │   ├── 📄 authStore.js          # Auth state management
+    │   ├── 📄 nganhStore.js         # Major state management
+    │   └── 📄 nguyenVongStore.js    # Preference state management
+    │
+    ├── 📂 styles/                   # Styling files
+    │   └── 📄 index.css             # Global styles + Tailwind CSS
+    │
+    └── 📂 utils/                    # Utility functions
+        ├── 📄 constants.js          # App constants & API endpoints
+        └── 📄 helpers.js            # Helper functions
+
+═══════════════════════════════════════════════════════════════
+
+📊 FILE STATISTICS
+═══════════════════════════════════════════════════════════════
+
+Configuration Files:       10 files
+Source Code Files:        19 files
+Documentation Files:       6 files
+Total:                    35 files
+
+Source Code Breakdown:
+├── Pages:                 2 files (LoginPage, DashboardPage)
+├── Components:            4 files (Header, Form, List, Route)
+├── Services:              4 files (API, Auth, Major, Preference)
+├── Stores:                3 files (Auth, Major, Preference)
+├── Styles:                1 file  (Global CSS)
+├── Utils:                 2 files (Constants, Helpers)
+├── Main:                  2 files (App, main)
+└── Public:                1 folder (Static assets)
+
+═══════════════════════════════════════════════════════════════
+
+📝 KEY FILES OVERVIEW
+═══════════════════════════════════════════════════════════════
+
+1. index.html (27 lines)
+   - HTML entry point
+   - Loads React root
+
+2. package.json (35 lines)
+   - Dependencies
+   - Dev dependencies
+   - Scripts (dev, build, lint)
+
+3. vite.config.js (28 lines)
+   - Vite configuration
+   - Dev server proxy
+   - Build optimization
+
+4. tailwind.config.js (14 lines)
+   - Tailwind theme colors
+   - Content paths
+
+5. App.jsx (19 lines)
+   - React Router setup
+   - Route definitions
+   - Protected routes
+
+6. LoginPage.jsx (72 lines)
+   - Login form UI
+   - Form handling
+   - Error display
+
+7. DashboardPage.jsx (91 lines)
+   - Main dashboard
+   - Tab navigation
+   - Statistics
+
+8. authStore.js (43 lines)
+   - Auth state (Zustand)
+   - Login/logout methods
+   - Error handling
+
+9. authService.js (31 lines)
+   - API calls for auth
+   - Token management
+
+10. api.js (18 lines)
+    - Axios instance
+    - Token interceptor
+
+═══════════════════════════════════════════════════════════════
+
+🎯 QUICK NAVIGATION
+═══════════════════════════════════════════════════════════════
+
+Getting Started:
+  → QUICK_START.md (5-minute setup)
+
+Installation:
+  → INSTALLATION.md (Detailed steps)
+
+Learn Architecture:
+  → ARCHITECTURE.md (System design)
+
+API Integration:
+  → API_INTEGRATION.md (Endpoints)
+
+Full Reference:
+  → README.md (Complete guide)
+
+═══════════════════════════════════════════════════════════════
+
+✨ FEATURES SUMMARY
+═══════════════════════════════════════════════════════════════
+
+Authentication (🔐)
+├── CCCD + Password login
+├── JWT token management
+├── Protected routes
+└── Auto logout
+
+Dashboard (📊)
+├── Welcome page
+├── Statistics boxes
+├── Tab navigation
+└── User greeting
+
+Preferences (📋)
+├── View all preferences
+├── Add new preference
+├── Delete preference
+├── View scores
+└── Status display
+
+Design (🎨)
+├── Tailwind CSS styling
+├── Responsive layout
+├── Modern UI/UX
+└── Vietnamese language
+
+═══════════════════════════════════════════════════════════════
+
+🚀 READY TO START!
+═══════════════════════════════════════════════════════════════
+
+1. Open terminal in xettuyen-web folder
+2. Run: npm install
+3. Run: npm run dev
+4. Open: http://localhost:3000
+5. Login with your test credentials
+6. Explore the dashboard!
+
+═══════════════════════════════════════════════════════════════
