@@ -1,6 +1,7 @@
 package com.xettuyen.service;
 
 import com.xettuyen.entity.ThiSinhXettuyen;
+import com.xettuyen.entity.NguyenVongXettuyen;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileInputStream;
@@ -154,48 +155,54 @@ public class ExcelImportService {
      * @param filePath Đường dẫn đến file Excel
      * @return Danh sách nguyện vọng đã import
      */
-    public java.util.List<com.xettuyen.entity.NguyenVongXettuyen> importNguyenVong(String filePath) {
-        List<com.xettuyen.entity.NguyenVongXettuyen> nguyenVongList = new ArrayList<>();
-        
-        try (FileInputStream file = new FileInputStream(filePath);
-             Workbook workbook = new XSSFWorkbook(file)) {
-            
-            Sheet sheet = workbook.getSheetAt(0);
-            int rowCount = 0;
-            
-            // Bỏ qua dòng header (dòng 0)
-            for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
-                Row row = sheet.getRow(i);
-                
-                if (row == null || isRowEmpty(row)) {
+    public List<NguyenVongXettuyen> importNguyenVong(String filePath) {
+        List<NguyenVongXettuyen> nguyenVongList = new ArrayList<>();
+        try (FileInputStream file = new FileInputStream(filePath); Workbook workbook = new XSSFWorkbook(file)) {
+            // ✅ Chỉ lấy 2 sheet cần thiết theo tên
+            String[] sheetNames = {"Sheet1", "Sheet2"};
+            for (String sheetName : sheetNames) {
+                Sheet sheet = workbook.getSheet(sheetName);
+                if (sheet == null) {
+                    System.err.println("⚠️ Không tìm thấy sheet: " + sheetName + " — bỏ qua.");
                     continue;
                 }
-                
-                try {
-                    com.xettuyen.entity.NguyenVongXettuyen nguyenVong = new com.xettuyen.entity.NguyenVongXettuyen();
-                    
-                    nguyenVong.setNnCccd(getCellValueAsString(row, 0));        // CCCD
-                    nguyenVong.setNvMaNganh(getCellValueAsString(row, 1));     // Mã ngành
-                    nguyenVong.setNvTt(getCellValueAsInteger(row, 2));         // Thứ tự
-                    nguyenVong.setTtPhuongThuc(getCellValueAsString(row, 3));  // Phương thức
-                    nguyenVong.setTtThm(getCellValueAsString(row, 4));         // Ghi chú
-                    
-                    // Tạo key duy nhất nếu chưa có
-                    if (nguyenVong.getNvKeys() == null || nguyenVong.getNvKeys().isEmpty()) {
-                        nguyenVong.setNvKeys(nguyenVong.getNnCccd() + "_" + nguyenVong.getNvTt());
+                System.out.println("📄 Đang xử lý sheet: " + sheetName);
+                int rowCount = 0;
+                for (int i = 5; i < sheet.getPhysicalNumberOfRows(); i++) {
+                    Row row = sheet.getRow(i);
+                    if (row == null || isRowEmpty(row)) continue;
+                    String firstCell = getCellValueAsString(row, 0);
+                    if (firstCell.contains("Tổng") || firstCell.contains("Cộng")) break;
+                    try {
+                        NguyenVongXettuyen nguyenVong = new NguyenVongXettuyen();
+                        String cccd = getCellValueAsString(row, 1);
+                        String maNganh = getCellValueAsString(row, 5);
+                        Integer nvTt = getCellValueAsInteger(row, 2);
+                        String nvTuyenThang = getCellValueAsString(row, 7);
+                        if (cccd.isEmpty() || maNganh.isEmpty() || nvTt == null || nvTt == 0) {
+                            System.err.println("⚠️ [" + sheetName + "] Bỏ qua dòng " + (i + 1) + ": thiếu dữ liệu bắt buộc");
+                            continue;
+                        }
+                        nguyenVong.setNnCccd(cccd);
+                        nguyenVong.setNvMaNganh(maNganh);
+                        nguyenVong.setNvTt(nvTt);
+                        nguyenVong.setDiemThxt(null);
+                        nguyenVong.setDiemUtqd(null);
+                        nguyenVong.setDiemCong(null);
+                        nguyenVong.setDiemXettuyen(null);
+                        nguyenVong.setNvKetqua("Chờ xét");
+                        nguyenVong.setNvKeys(cccd + "_" + maNganh + "_" + (nvTuyenThang.isEmpty() ? "PT4" : "PT1"));
+                        nguyenVong.setTtPhuongThuc(nvTuyenThang.isEmpty() ? "PT4" : "PT1");
+                        nguyenVong.setTtThm(null);
+                        nguyenVongList.add(nguyenVong);
+                        rowCount++;
+                    } catch (Exception e) {
+                        System.err.println("⚠️ [" + sheetName + "] Lỗi tại dòng " + (i + 1) + ": " + e.getMessage());
                     }
-                    
-                    nguyenVongList.add(nguyenVong);
-                    rowCount++;
-                    
-                } catch (Exception e) {
-                    System.err.println("⚠️ Lỗi khi xử lý dòng " + (i + 1) + ": " + e.getMessage());
-                    e.printStackTrace();
                 }
+                System.out.println("✅ [" + sheetName + "] Đọc được " + rowCount + " nguyện vọng.");
             }
-            
-            System.out.println("✅ Import thành công " + rowCount + " nguyện vọng từ " + filePath);
-            
+            System.out.println("🎯 Tổng cộng: " + nguyenVongList.size() + " nguyện vọng từ tất cả sheet.");
         } catch (IOException e) {
             System.err.println("❌ Lỗi khi đọc file " + filePath + ": " + e.getMessage());
             e.printStackTrace();
@@ -203,7 +210,6 @@ public class ExcelImportService {
             System.err.println("❌ Lỗi không xác định khi import nguyện vọng: " + e.getMessage());
             e.printStackTrace();
         }
-        
         return nguyenVongList;
     }
 
