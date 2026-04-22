@@ -22,7 +22,7 @@ public class NguyenVongDAO extends BaseDAO<NguyenVongXettuyen> {
         try (Session session = sessionFactory.openSession()) {
             // Sử dụng LIKE để tìm kiếm một phần (ví dụ: nhập 0001 ra TS_0001)
             // Dùng LOWER để tìm kiếm không phân biệt chữ hoa, chữ thường
-            String hql = "FROM NguyenVongXettuyen WHERE LOWER(nnCccd) LIKE LOWER(:cccd) ORDER BY nnCccd ASC, nvTt ASC";
+            String hql = "FROM NguyenVongXettuyen WHERE LOWER(nnCccd) LIKE LOWER(:cccd) ORDER BY LENGTH(nnCccd) ASC, nnCccd ASC, nvTt ASC";
 
             Query<NguyenVongXettuyen> query = session.createQuery(hql, NguyenVongXettuyen.class);
 
