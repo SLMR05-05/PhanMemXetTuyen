@@ -246,15 +246,30 @@ public class NguyenVongPanel extends JPanel {
     }
 
     private void loadByCccd(String cccd) {
-        isSearchMode = true;
-        allLoaded = true;
-        tableModel.setRowCount(0);
+        isSearchMode = true; // Đang trong chế độ tìm kiếm
+        tableModel.setRowCount(0); // Xóa sạch bảng cũ
+
         List<NguyenVongXettuyen> list = nguyenVongDAO.findByCCCD(cccd);
+
         if (list == null || list.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Không tìm thấy dữ liệu.");
+            JOptionPane.showMessageDialog(this, "Không tìm thấy dữ liệu khớp với: " + cccd);
+            resetAndLoadAll(); // Nếu không thấy ai thì quay lại danh sách tổng
             return;
         }
-        for (NguyenVongXettuyen nv : list) appendRow(nv);
+
+        // Đổ dữ liệu tìm được vào bảng
+        for (NguyenVongXettuyen nv : list) {
+            appendRow(nv);
+        }
+
+        // KIỂM TRA ĐỂ CẮM BIỂN "HẾT HÀNG" (allLoaded)
+        // Nếu danh sách tìm được ít hơn 50 dòng (PAGE_SIZE), chắc chắn là đã hết dữ liệu
+        if (list.size() < PAGE_SIZE) {
+            allLoaded = true;
+        } else {
+            // Nếu đúng 50 dòng, có thể vẫn còn nữa (cần cuộn để tải thêm)
+            allLoaded = false;
+        }
     }
 
     /**
