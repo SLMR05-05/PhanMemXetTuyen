@@ -19,7 +19,7 @@ public class DiemThiXettuyen {
     @Column(name = "d_phuongthuc")
     private String dPhuongThuc;
 
-    @Column(name = "TO")
+    @Column(name = "`TO`")
     private Double to;
 
     @Column(name = "LI")
