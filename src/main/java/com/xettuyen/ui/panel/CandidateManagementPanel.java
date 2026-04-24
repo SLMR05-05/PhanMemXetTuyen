@@ -1,18 +1,20 @@
 package com.xettuyen.ui.panel;
 
-import com.xettuyen.dao.DAOFactory;
 import com.xettuyen.entity.NguyenVongXettuyen;
 import com.xettuyen.entity.ThiSinhXettuyen;
+import com.xettuyen.service.ExcelImportService;
 import com.xettuyen.service.ThiSinhService;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -21,6 +23,7 @@ public class CandidateManagementPanel extends JPanel {
 
     private static final int PAGE_SIZE = 10;
 
+    private final ExcelImportService excelImportService = new ExcelImportService();
     private final ThiSinhService thiSinhService = new ThiSinhService();
 
     private JTextField searchField;
@@ -28,6 +31,7 @@ public class CandidateManagementPanel extends JPanel {
     private JTextField totalPageField;
     private JButton prevBtn;
     private JButton nextBtn;
+    private JButton importBtn;
     private DefaultTableModel model;
     private JTable table;
 
@@ -101,7 +105,7 @@ public class CandidateManagementPanel extends JPanel {
         gbc.weightx = 0; 
         northPanel.add(space, gbc);
 
-        JButton importBtn = new JButton("Import");
+        importBtn = new JButton("Import");
         importBtn.setPreferredSize(new Dimension(vw(10), vh(5)));
         importBtn.putClientProperty("FlatLaf.style", 
             "arc: 10; " + 
@@ -116,6 +120,7 @@ public class CandidateManagementPanel extends JPanel {
         gbc.weightx = 0; 
         gbc.fill = GridBagConstraints.NONE;
         northPanel.add(importBtn, gbc);
+    importBtn.addActionListener(e -> openImportFileDialog());
 
         // == Center =========================================
         JPanel centerPanel = new JPanel(new BorderLayout());
@@ -299,6 +304,59 @@ public class CandidateManagementPanel extends JPanel {
         } catch (NumberFormatException ex) {
             return 1;
         }
+    }
+
+    private void openImportFileDialog() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Chọn file Excel thí sinh");
+        chooser.setFileFilter(new FileNameExtensionFilter("Excel Workbook (*.xlsx)", "xlsx"));
+
+        int selected = chooser.showOpenDialog(this);
+        if (selected != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File file = chooser.getSelectedFile();
+        if (file == null) {
+            return;
+        }
+
+        importBtn.setEnabled(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        SwingWorker<Integer, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Integer doInBackground() {
+                return excelImportService.importThiSinhVaDiemThi(file.getAbsolutePath());
+            }
+
+            @Override
+            protected void done() {
+                importBtn.setEnabled(true);
+                setCursor(Cursor.getDefaultCursor());
+
+                try {
+                    int importedRows = get();
+                    JOptionPane.showMessageDialog(
+                        CandidateManagementPanel.this,
+                        "Đã import thành công " + importedRows + " dòng từ file đã chọn.",
+                        "Import thành công",
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+                    loadCandidates(1);
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    JOptionPane.showMessageDialog(
+                        CandidateManagementPanel.this,
+                        cause.getMessage(),
+                        "Import thất bại",
+                        JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+        };
+
+        worker.execute();
     }
 
 
