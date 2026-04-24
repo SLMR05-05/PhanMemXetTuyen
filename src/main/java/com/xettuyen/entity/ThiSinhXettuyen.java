@@ -51,6 +51,12 @@ public class ThiSinhXettuyen {
     @Column(name = "khu_vuc")
     private String khuVuc;
 
+    @Column(name = "trang_thai_trung_tuyen")
+    private String trangThaiTrungTuyen;
+
+    @Column(name = "nganh_trung_tuyen")
+    private String nganhTrungTuyen;
+
     // Constructors
     public ThiSinhXettuyen() {
     }
@@ -186,6 +192,22 @@ public class ThiSinhXettuyen {
         this.khuVuc = khuVuc;
     }
 
+    public String getTrangThaiTrungTuyen() {
+        return trangThaiTrungTuyen;
+    }
+
+    public void setTrangThaiTrungTuyen(String trangThaiTrungTuyen) {
+        this.trangThaiTrungTuyen = trangThaiTrungTuyen;
+    }
+
+    public String getNganhTrungTuyen() {
+        return nganhTrungTuyen;
+    }
+
+    public void setNganhTrungTuyen(String nganhTrungTuyen) {
+        this.nganhTrungTuyen = nganhTrungTuyen;
+    }
+
     @Override
     public String toString() {
         return "ThiSinhXettuyen{" +
@@ -203,6 +225,8 @@ public class ThiSinhXettuyen {
                 ", updatedAt=" + updatedAt +
                 ", doiTuong='" + doiTuong + '\'' +
                 ", khuVuc='" + khuVuc + '\'' +
+                ", trangThaiTrungTuyen='" + trangThaiTrungTuyen + '\'' +
+                ", nganhTrungTuyen='" + nganhTrungTuyen + '\'' +
                 '}';
     }
 }

@@ -120,7 +120,7 @@ public class CandidateManagementPanel extends JPanel {
         gbc.weightx = 0; 
         gbc.fill = GridBagConstraints.NONE;
         northPanel.add(importBtn, gbc);
-    importBtn.addActionListener(e -> openImportFileDialog());
+        importBtn.addActionListener(e -> openImportFileDialog());
 
         // == Center =========================================
         JPanel centerPanel = new JPanel(new BorderLayout());
@@ -128,11 +128,11 @@ public class CandidateManagementPanel extends JPanel {
         centerPanel.setBorder(new EmptyBorder(0, 10, 10, 10)); // Cách lề để không dính sát viền
 
         // Khởi tạo table như hướng dẫn trên
-        String[] headers = {"ID", "CCCD", "SBD", "Họ", "Tên", "Chức năng"};
+        String[] headers = {"ID", "CCCD", "SBD", "Họ", "Tên", "Trạng thái trúng tuyển", "Ngành trúng tuyển", "Chức năng"};
         model = new DefaultTableModel(headers, 0){
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 5; // Chỉ cho phép bấm nút "Chi tiết" ở cột cuối
+                return column == 7; // Chỉ cho phép bấm nút "Chi tiết" ở cột cuối
             }
         };
         table = new JTable(model);
@@ -140,12 +140,12 @@ public class CandidateManagementPanel extends JPanel {
         // -- Customize table -----------------------------------------
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         int equalWidth = 130;
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 8; i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(equalWidth);
         }
         // Gắn renderer + editor để cột "Chức năng" hiển thị nút thật thay vì text.
-        table.getColumnModel().getColumn(5).setCellRenderer(new DetailButtonRenderer());
-        table.getColumnModel().getColumn(5).setCellEditor(new DetailButtonEditor(table));
+        table.getColumnModel().getColumn(7).setCellRenderer(new DetailButtonRenderer());
+        table.getColumnModel().getColumn(7).setCellEditor(new DetailButtonEditor(table));
 
         table.getTableHeader().setPreferredSize(new Dimension(0, vh(5)));
         table.getTableHeader().putClientProperty("FlatLaf.style", 
@@ -288,6 +288,8 @@ public class CandidateManagementPanel extends JPanel {
                 thiSinh.getSoBaoDanh(),
                 thiSinh.getHo(),
                 thiSinh.getTen(),
+                thiSinh.getTrangThaiTrungTuyen(),
+                thiSinh.getNganhTrungTuyen(),
                 "Chi tiết"
             });
         }
@@ -321,8 +323,10 @@ public class CandidateManagementPanel extends JPanel {
             return;
         }
 
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JDialog loadingDialog = createImportLoadingDialog(owner);
+
         importBtn.setEnabled(false);
-        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
         SwingWorker<Integer, Void> worker = new SwingWorker<>() {
             @Override
@@ -332,8 +336,8 @@ public class CandidateManagementPanel extends JPanel {
 
             @Override
             protected void done() {
+                loadingDialog.dispose();
                 importBtn.setEnabled(true);
-                setCursor(Cursor.getDefaultCursor());
 
                 try {
                     int importedRows = get();
@@ -357,6 +361,45 @@ public class CandidateManagementPanel extends JPanel {
         };
 
         worker.execute();
+        loadingDialog.setVisible(true);
+    }
+
+    private JDialog createImportLoadingDialog(Window owner) {
+        JDialog dialog = new JDialog(owner, "Đang import", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        dialog.setResizable(false);
+
+        JPanel root = new JPanel(new BorderLayout(10, 10));
+        root.setBorder(new EmptyBorder(16, 16, 16, 16));
+        root.setBackground(C_CARD);
+
+        JLabel title = new JLabel("Đang import dữ liệu thí sinh...");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        title.setForeground(C_TITLE);
+
+        JLabel message = new JLabel("Vui lòng chờ trong giây lát ...");
+        message.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        message.setForeground(C_TEXT);
+
+        JProgressBar progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        progressBar.putClientProperty("FlatLaf.style",
+            "arc: 8; " +
+            "foreground: " + toHex(C_PRIMARY) + ";"
+        );
+
+        root.add(title, BorderLayout.NORTH);
+
+        JPanel center = new JPanel(new BorderLayout(0, 8));
+        center.setOpaque(false);
+        center.add(message, BorderLayout.NORTH);
+        center.add(progressBar, BorderLayout.CENTER);
+        root.add(center, BorderLayout.CENTER);
+
+        dialog.setContentPane(root);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        return dialog;
     }
 
 
