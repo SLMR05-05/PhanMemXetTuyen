@@ -329,6 +329,7 @@ public class MainFrame extends JFrame {
         addSidebarItem(sidebar, "🎓", "Quản Lý Ngành",     "NGANH",      itemH, false);
         addSidebarItem(sidebar, "📊", "Quản Lý Điểm",      "DIEM",       itemH, false);
         addSidebarItem(sidebar, "📋", "Nguyện Vọng",       "NGUYEN_VONG",itemH, false);
+        addSidebarItem(sidebar, "🔄", "Bảng Quy Đổi",       "BANG_QD", itemH, false);
 
         if ("admin".equalsIgnoreCase(userRole)) {
             sidebar.add(Box.createVerticalStrut(clamp(vh(1), 6, 12)));
@@ -407,7 +408,7 @@ public class MainFrame extends JFrame {
         contentPanel.add(diemPanel,       "DIEM");
         contentPanel.add(nguyenVongPanel, "NGUYEN_VONG");
         contentPanel.add(userPanel,       "USER");
-
+        contentPanel.add(new BangQuyDoiPanel(), "BANG_QD");
         return contentPanel;
     }
 
