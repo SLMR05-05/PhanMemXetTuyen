@@ -34,7 +34,7 @@ public class DiemPanel extends JPanel {
 
         tabbedPane.addTab(" Nhập Điểm Thi ", diemThiSubPanel);
         tabbedPane.addTab(" Điểm Cộng / Ưu Tiên ", diemCongSubPanel);
-        tabbedPane.addTab(" Lịch Sử Chỉnh Sửa ", historyPanel);
+        tabbedPane.addTab(" Lịch Sử ", historyPanel);
 
         add(tabbedPane, BorderLayout.CENTER);
     }

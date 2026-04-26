@@ -106,26 +106,31 @@ public class ExcelImportService {
                 
                 try {
                     com.xettuyen.entity.DiemThiXettuyen diemThi = new com.xettuyen.entity.DiemThiXettuyen();
-                    
-                    diemThi.setCccd(getCellValueAsString(row, 0));
-                    diemThi.setSoBaoDanh(getCellValueAsString(row, 1));
+
+                    diemThi.setIdDiemThi(getCellValueAsInteger(row, 0));
+                    diemThi.setCccd(getCellValueAsString(row, 1));
                     
                     // Các môn thi (kiểu numeric - Double)
-                    diemThi.setTo(getCellValueAsDouble(row, 2));      // Toán
-                    diemThi.setLi(getCellValueAsDouble(row, 3));      // Lý
-                    diemThi.setHo(getCellValueAsDouble(row, 4));      // Hoá
-                    diemThi.setSi(getCellValueAsDouble(row, 5));      // Sinh
-                    diemThi.setSu(getCellValueAsDouble(row, 6));      // Sử
-                    diemThi.setDi(getCellValueAsDouble(row, 7));      // Địa
+                    diemThi.setTo(getCellValueAsDouble(row, 7));      // Toán   
                     diemThi.setVa(getCellValueAsDouble(row, 8));      // Văn
+                    diemThi.setLi(getCellValueAsDouble(row, 9));      // Lý
+                    diemThi.setHo(getCellValueAsDouble(row, 10));      // Hoá
+                    diemThi.setSi(getCellValueAsDouble(row, 11));      // Sinh
+                    diemThi.setSu(getCellValueAsDouble(row, 12));      // Sử
+                    diemThi.setDi(getCellValueAsDouble(row, 13));      // Địa
+                    
                     
                     // Các cột khác
-                    diemThi.setN1Thi(getCellValueAsDouble(row, 9));   // N1-Thi
-                    diemThi.setCncn(getCellValueAsDouble(row, 10));   // CNCN
-                    diemThi.setCnnn(getCellValueAsDouble(row, 11));   // CNNN
-                    diemThi.setTi(getCellValueAsDouble(row, 12));     // TI
-                    diemThi.setKtpl(getCellValueAsDouble(row, 13));   // KTPL
-                    
+                    diemThi.setN1Thi(getCellValueAsDouble(row, 15));   // N1-Thi
+                    // diemThi.setLoaiChungChi(getCellValueAsString(row, 16));
+                    diemThi.setCncn(getCellValueAsDouble(row, 19));   // CNCN
+                    diemThi.setCnnn(getCellValueAsDouble(row, 20));   // CNNN
+                    diemThi.setTi(getCellValueAsDouble(row, 18));     // TI
+                    diemThi.setKtpl(getCellValueAsDouble(row, 17));   // KTPL
+
+                    diemThi.setNk1(getCellValueAsDouble(row, 22));
+                    diemThi.setNk2(getCellValueAsDouble(row, 23));
+                    diemThi.setDPhuongThuc("4");
                     diemThiList.add(diemThi);
                     rowCount++;
                     
@@ -154,7 +159,7 @@ public class ExcelImportService {
         try (FileInputStream file = new FileInputStream(filePath);
              Workbook workbook = new XSSFWorkbook(file)) {
             
-            Sheet sheet = workbook.getSheetAt(0);
+            Sheet sheet = workbook.getSheetAt(1);
             int rowCount = 0;
             
             // Bỏ qua dòng header (dòng 0)
@@ -168,14 +173,17 @@ public class ExcelImportService {
                 try {
                     com.xettuyen.entity.DiemCongXettuyen diemCong = new com.xettuyen.entity.DiemCongXettuyen();
                     
-                    diemCong.setTsCccd(getCellValueAsString(row, 0));
-                    diemCong.setMaNganh(getCellValueAsString(row, 1));
-                    diemCong.setMaTohop(getCellValueAsString(row, 2));
-                    diemCong.setPhuongThuc(getCellValueAsString(row, 3));
-                    diemCong.setDiemCc(getCellValueAsDouble(row, 4));
-                    diemCong.setDiemUtxt(getCellValueAsDouble(row, 5));
-                    diemCong.setDiemTong(diemCong.getDiemCc() + diemCong.getDiemUtxt());
-                    diemCong.setDcKeys(diemCong.getTsCccd() + "_" + diemCong.getMaNganh());
+                    diemCong.setTsCccd(getCellValueAsString(row, 1));
+                    //diemCong.setMaNganh(getCellValueAsString(row, 6));
+                    //diemCong.setMaTohop(getCellValueAsString(row, 5));
+                    diemCong.setPhuongThuc(getCellValueAsString(row, 4));
+                    diemCong.setDiemCc(getCellValueAsDouble(row, 7));
+                    diemCong.setDiemUtxt(getCellValueAsDouble(row, 8));
+                    double d1 = (diemCong.getDiemCc() != null) ? diemCong.getDiemCc() : 0;
+                    double d2 = (diemCong.getDiemUtxt() != null) ? diemCong.getDiemUtxt() : 0;
+                    diemCong.setDiemTong(d1 + d2);
+                    diemCong.setGhiChu(getCellValueAsString(row, 2) + " - " + getCellValueAsString(row, 3));
+                    diemCong.setDcKeys(diemCong.getTsCccd() + "_" + diemCong.getMaNganh() + "_" + diemCong.getMaTohop());
                     
                     diemCongList.add(diemCong);
                     rowCount++;
@@ -312,7 +320,7 @@ public class ExcelImportService {
         Cell cell = row.getCell(cellIndex);
         
         if (cell == null || cell.getCellType() == CellType.BLANK) {
-            return 0.0;
+            return null;
         }
         
         try {

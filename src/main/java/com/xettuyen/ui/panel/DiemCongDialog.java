@@ -7,7 +7,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class DiemCongDialog extends JDialog {
-    private JTextField txtCCCD, txtMaNganh, txtMaToHop, txtPhuongThuc, txtDiemCC, txtDiemUT, txtGhiChu;
+    private JTextField txtCCCD, txtMaNganh, txtMaToHop, txtPhuongThuc, txtDiemCC, txtDiemUT, txtGhiChu, txtDCKeys;
     private JButton btnSave, btnCancel;
     private boolean confirmed = false;
     private DiemCongXettuyen diemCong;
@@ -42,6 +42,7 @@ public class DiemCongDialog extends JDialog {
         txtDiemCC = createField(f(diemCong.getDiemCc()), true);
         txtDiemUT = createField(f(diemCong.getDiemUtxt()), true);
         txtGhiChu = createField(diemCong.getGhiChu(), true);
+        txtDCKeys = createField(diemCong.getDcKeys(), false); // DC Keys không cho sửa
 
         // Layout các trường
         addF(form, "CCCD Thí sinh:", txtCCCD, 0, g);
@@ -51,6 +52,7 @@ public class DiemCongDialog extends JDialog {
         addF(form, "Điểm Chứng chỉ:", txtDiemCC, 4, g);
         addF(form, "Điểm Ưu tiên:", txtDiemUT, 5, g);
         addF(form, "Ghi chú:", txtGhiChu, 6, g);
+        addF(form, "DC Keys:", txtDCKeys, 7, g);
 
         add(form, BorderLayout.CENTER);
 
