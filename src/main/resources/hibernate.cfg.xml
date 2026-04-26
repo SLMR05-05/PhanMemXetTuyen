@@ -9,7 +9,7 @@
         <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
         <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/xettuyen2026</property>
         <property name="hibernate.connection.username">root</property>
-        <property name="hibernate.connection.password">123456789</property>
+        <property name="hibernate.connection.password"></property>
 
         <!-- MySQL Dialect -->
         <property name="hibernate.dialect">org.hibernate.dialect.MySQL8Dialect</property>
