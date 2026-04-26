@@ -84,7 +84,6 @@ public class MainFrame extends JFrame {
 
     private CardLayout cardLayout;
     private JPanel     contentPanel;
-    private JLabel     breadcrumbLabel;
     private String     activeCard = "HOME";
 
     // ── Panels ────────────────────────────────────────────
@@ -158,13 +157,9 @@ public class MainFrame extends JFrame {
         titleLbl.setFont(new Font("Segoe UI", Font.BOLD, fontTitle));
         titleLbl.setForeground(Color.WHITE);
 
-        breadcrumbLabel = new JLabel("▸  Trang Chủ");
-        breadcrumbLabel.setFont(new Font("Segoe UI", Font.PLAIN, fontSub));
-        breadcrumbLabel.setForeground(new Color(0xB0, 0xCC, 0xFF));
 
         left.add(titleLbl);
         left.add(Box.createVerticalStrut(2));
-        left.add(breadcrumbLabel);
 
         // ── Right: user chip ──
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, clamp(vw(0.8f), 8, 14), 0));
@@ -372,7 +367,6 @@ public class MainFrame extends JFrame {
             return;
         }
         activeCard = card;
-        breadcrumbLabel.setText("▸  " + label);
         cardLayout.show(contentPanel, card);
 
         // Update active state on all SidebarButtons
@@ -393,8 +387,9 @@ public class MainFrame extends JFrame {
         thiSinhPanel    = new CandidateManagementPanel();
         nganhPanel      = createPlaceholderPanel("🎓", "Quản Lý Ngành",
                 new String[]{"Danh sách ngành học","Thêm / Sửa / Xóa ngành","Quản lý tổ hợp môn","Bảng quy đổi điểm"});
-        diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
-                new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});
+        diemPanel = new DiemPanel();
+        /* diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
+                new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});*/
         nguyenVongPanel = createPlaceholderPanel("📋", "Quản Lý Nguyện Vọng",
                 new String[]{"Danh sách nguyện vọng","Nhập nguyện vọng","Tính điểm xét tuyển","Kết quả trúng tuyển"});
         userPanel       = new UserManagementPanel();

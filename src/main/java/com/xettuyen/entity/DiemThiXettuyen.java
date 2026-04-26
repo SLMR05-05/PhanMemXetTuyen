@@ -37,7 +37,7 @@ public class DiemThiXettuyen {
     @Column(name = "DI")
     private Double di;
 
-    @Column(name = "VA")
+    @Column(name = "`VA`")
     private Double va;
 
     @Column(name = "N1_THI", columnDefinition = "DECIMAL(8,2) COMMENT 'Điểm thi gốc'")
