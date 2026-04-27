@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+        <!-- Database connection settings -->
+        <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/xettuyen2026</property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.connection.password">123456789</property>
+
+        <!-- MySQL Dialect -->
+        <property name="hibernate.dialect">org.hibernate.dialect.MySQL8Dialect</property>
+
+        <!-- Hibernate Configuration -->
+        <property name="hibernate.show_sql">true</property>
+        <property name="hibernate.format_sql">true</property>
+        <property name="hibernate.use_sql_comments">true</property>
+
+        <!-- Connection Pool -->
+        <property name="hibernate.c3p0.min_size">5</property>
+        <property name="hibernate.c3p0.max_size">20</property>
+        <property name="hibernate.c3p0.timeout">300</property>
+        <property name="hibernate.c3p0.max_statements">50</property>
+        <property name="hibernate.c3p0.idle_test_period">3000</property>
+
+        <!-- Hbm2ddl auto mode -->
+        <!-- validate: chỉ validate schema, không make change -->
+        <!-- update: update schema nếu cần -->
+        <!-- create: Tạo schema mới (drop cũ nếu có) -->
+        <!-- create-drop: drop schema khi SessionFactory close -->
+        <property name="hibernate.hbm2ddl.auto">update</property>
+
+        <!-- Entity Classes Mapping -->
+        <mapping class="com.xettuyen.entity.User"/>
+        <mapping class="com.xettuyen.entity.BangQuydoi"/>
+        <mapping class="com.xettuyen.entity.DiemCongXettuyen"/>
+        <mapping class="com.xettuyen.entity.DiemThiXettuyen"/>
+        <mapping class="com.xettuyen.entity.Nganh"/>
+        <mapping class="com.xettuyen.entity.NganhTohop"/>
+        <mapping class="com.xettuyen.entity.NguyenVongXettuyen"/>
+        <mapping class="com.xettuyen.entity.ThiSinhXettuyen"/>
+        <mapping class="com.xettuyen.entity.TohopMonthi"/>
+    </session-factory>
+</hibernate-configuration>
