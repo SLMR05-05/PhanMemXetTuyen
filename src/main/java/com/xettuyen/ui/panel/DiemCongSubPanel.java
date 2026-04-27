@@ -22,6 +22,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.SwingWorker;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -30,6 +31,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.xettuyen.dao.DAOFactory;
 import com.xettuyen.entity.DiemCongXettuyen;
+import com.xettuyen.entity.DiemThiXettuyen;
 import com.xettuyen.service.ExcelImportService;
 import com.xettuyen.ui.MainFrame;
 
@@ -73,7 +75,7 @@ public class DiemCongSubPanel extends JPanel {
         add(toolBar, BorderLayout.NORTH);
 
         // 2. TABLE
-        String[] header = {"CCCD", "Mã Ngành", "Tổ Hợp", "PT", "Điểm CC", "Điểm UT", "Tổng", "Ghi Chú"};
+        String[] header = {"TT", "CCCD", "Mã Ngành", "Mã Tổ Hợp", "Phương Thức", "Điểm CC", "Điểm UT", "Điểm Tổng", "Ghi Chú", "DC Keys"};
         tableModel = new DefaultTableModel(header, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
@@ -112,6 +114,7 @@ public class DiemCongSubPanel extends JPanel {
         table.setSelectionForeground(Color.WHITE);
         table.setShowGrid(false);
         table.setIntercellSpacing(new Dimension(0, 0));
+        table.getColumnModel().getColumn(0).setPreferredWidth(50);
     }
 
     private JButton createStyledButton(String text, Color bg) {
@@ -130,9 +133,9 @@ public class DiemCongSubPanel extends JPanel {
         listDiemCong = DAOFactory.getDiemCongDAO().findAll(DiemCongXettuyen.class);
         for (DiemCongXettuyen dc : listDiemCong) {
             tableModel.addRow(new Object[]{
-                dc.getTsCccd(), dc.getMaNganh(), dc.getMaTohop(), 
+                dc.getIdDiemCong(), dc.getTsCccd(), dc.getMaNganh(), dc.getMaTohop(), 
                 dc.getPhuongThuc(), f(dc.getDiemCc()), f(dc.getDiemUtxt()), 
-                f(dc.getDiemTong()), f(dc.getGhiChu())
+                f(dc.getDiemTong()), f(dc.getGhiChu()), f(dc.getDcKeys())
             });
         }
     }
@@ -179,13 +182,40 @@ public class DiemCongSubPanel extends JPanel {
     }
 
     private void handleDelete() {
-        int r = table.getSelectedRow();
-        if (r != -1) {
-            DiemCongXettuyen dcSelected = listDiemCong.get(r);
-            if (JOptionPane.showConfirmDialog(this, "Xóa dòng này của thí sinh " + dcSelected.getTsCccd() + "?") == JOptionPane.YES_OPTION) {
-                DAOFactory.getDiemCongDAO().delete(dcSelected);
-                DiemPanel.addLog("Xóa điểm ưu tiên CCCD: " + dcSelected.getTsCccd());
-                loadData();
+        // Lấy danh sách chỉ số các dòng đang được chọn
+        int[] selectedRows = table.getSelectedRows();
+    
+        if (selectedRows.length == 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất một dòng để xóa!");
+            return;
+        }
+
+        // Hỏi xác nhận 1 lần duy nhất cho tất cả các dòng
+        int confirm = JOptionPane.showConfirmDialog(this, 
+            "Bạn có chắc chắn muốn xóa " + selectedRows.length + " bản ghi đã chọn?", 
+            "Xác nhận xóa hàng loạt", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                int count = 0;
+                // Duyệt danh sách từ dưới lên hoặc lấy đối tượng trước khi xóa 
+                // để tránh bị lệch Index của listDiemCong
+                for (int i = selectedRows.length - 1; i >= 0; i--) {
+                    int modelRow = table.convertRowIndexToModel(selectedRows[i]);
+                    DiemCongXettuyen dc = listDiemCong.get(modelRow);
+                
+                    // Gọi DAO xóa
+                    DAOFactory.getDiemCongDAO().delete(dc);
+                    count++;
+                }
+            
+                DiemPanel.addLog("Xóa hàng loạt: thành công " + count + " bản ghi.");
+                loadData(); // Load lại bảng sau khi xóa xong
+                JOptionPane.showMessageDialog(this, "Đã xóa thành công " + count + " bản ghi!");
+            
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Lỗi khi xóa dữ liệu: " + ex.getMessage());
+                loadData(); // Load lại để đảm bảo đồng bộ
             }
         }
     }
@@ -215,21 +245,42 @@ public class DiemCongSubPanel extends JPanel {
 
     private void handleImport() {
         JFileChooser fs = new JFileChooser();
-        fs.setFileFilter(new FileNameExtensionFilter("Excel Files", "xlsx"));
+        fs.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+    
         if (fs.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try {
-                List<DiemCongXettuyen> list = new ExcelImportService().importDiemCong(fs.getSelectedFile().getPath());
-                int count = 0;
-                for (DiemCongXettuyen dc : list) {
-                    DAOFactory.getDiemCongDAO().save(dc); 
-                    count++;
+            String path = fs.getSelectedFile().getPath();
+        
+            // Chạy Worker để không bị đơ giao diện
+            new SwingWorker<Integer, Void>() {
+                @Override
+                protected Integer doInBackground() throws Exception {
+                    List<DiemCongXettuyen> list = new ExcelImportService().importDiemCong(path);
+                    int count = 0;
+                    for (DiemCongXettuyen dc : list) {
+                        try {
+                            DAOFactory.getDiemCongDAO().save(dc);
+                            count++;
+                        } catch (Exception e) {
+                            // Nếu trùng Key thì cập nhật
+                            DAOFactory.getDiemCongDAO().update(dc);
+                            count++;
+                        }
+                    }
+                    return count;
                 }
-                DiemPanel.addLog("Import Excel thành công " + count + " dòng điểm ưu tiên.");
-                loadData();
-                JOptionPane.showMessageDialog(this, "Đã nhập thành công " + count + " bản ghi!");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Lỗi khi import: " + ex.getMessage());
-            }
+
+                @Override
+                protected void done() {
+                    try {
+                        int total = get();
+                        loadData(); // Load lại bảng
+                        DiemPanel.addLog("Import Excel thành công: " + total + " dòng điểm cộng.");
+                        JOptionPane.showMessageDialog(DiemCongSubPanel.this, "Đã nhập thành công " + total + " bản ghi!");
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(DiemCongSubPanel.this, "Lỗi: " + e.getMessage());
+                    }
+                }
+            }.execute();
         }
     }
 }
