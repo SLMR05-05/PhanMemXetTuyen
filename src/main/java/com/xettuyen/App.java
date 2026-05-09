@@ -1,5 +1,6 @@
 package com.xettuyen;
 
+import com.formdev.flatlaf.FlatLightLaf;
 import com.xettuyen.ui.LoginForm;
 import javax.swing.*;
 /**
@@ -12,7 +13,8 @@ public class App
     {
         // Cấu hình Look & Feel
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            // UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            UIManager.setLookAndFeel(new FlatLightLaf());
         } catch (Exception e) {
             e.printStackTrace();
         }

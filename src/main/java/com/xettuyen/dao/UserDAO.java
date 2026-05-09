@@ -112,6 +112,76 @@ public class UserDAO extends BaseDAO<User> {
     }
 
     /**
+     * Tìm kiếm user theo từ khóa (username/email/full name/role) có phân trang
+     *
+     * @param keyword Từ khóa tìm kiếm
+     * @param offset Vị trí bắt đầu
+     * @param limit Số bản ghi tối đa
+     * @return Danh sách user phù hợp
+     */
+    public List<User> searchByKeyword(String keyword, int offset, int limit) {
+        Session session = null;
+        try {
+            session = HibernateUtil.getSessionFactory().openSession();
+            String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase();
+
+            String hql = "FROM User u " +
+                    "WHERE (:keyword = '' OR " +
+                    "LOWER(u.username) LIKE :search OR " +
+                    "LOWER(u.email) LIKE :search OR " +
+                    "LOWER(u.fullName) LIKE :search OR " +
+                    "LOWER(u.role) LIKE :search) " +
+                    "ORDER BY u.id DESC";
+
+            Query<User> query = session.createQuery(hql, User.class);
+            query.setParameter("keyword", normalizedKeyword);
+            query.setParameter("search", "%" + normalizedKeyword + "%");
+            query.setFirstResult(Math.max(0, offset));
+            query.setMaxResults(Math.max(1, limit));
+            return query.list();
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi tìm kiếm user: " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
+        } finally {
+            if (session != null) session.close();
+        }
+    }
+
+    /**
+     * Đếm tổng số user khớp từ khóa tìm kiếm
+     *
+     * @param keyword Từ khóa tìm kiếm
+     * @return Tổng số bản ghi
+     */
+    public long countSearchResult(String keyword) {
+        Session session = null;
+        try {
+            session = HibernateUtil.getSessionFactory().openSession();
+            String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase();
+
+            String hql = "SELECT COUNT(u) FROM User u " +
+                    "WHERE (:keyword = '' OR " +
+                    "LOWER(u.username) LIKE :search OR " +
+                    "LOWER(u.email) LIKE :search OR " +
+                    "LOWER(u.fullName) LIKE :search OR " +
+                    "LOWER(u.role) LIKE :search)";
+
+            Query<Long> query = session.createQuery(hql, Long.class);
+            query.setParameter("keyword", normalizedKeyword);
+            query.setParameter("search", "%" + normalizedKeyword + "%");
+            Long count = query.uniqueResult();
+            return count == null ? 0 : count;
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi đếm user: " + e.getMessage());
+            e.printStackTrace();
+            return 0;
+        } finally {
+            if (session != null) session.close();
+        }
+    }
+
+    /**
      * Tạo user mới
      * 
      * @param user User object cần tạo

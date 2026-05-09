@@ -4,6 +4,7 @@ import com.xettuyen.entity.DiemCongXettuyen;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
+
 import java.util.List;
 
 /**
@@ -29,6 +30,21 @@ public class DiemCongDAO extends BaseDAO<DiemCongXettuyen> {
             return result;
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi tìm điểm cộng theo CCCD: " + e.getMessage(), e);
+        }
+    }
+
+    public DiemCongXettuyen findByDcKeys(String cccd, String maNganh, String maTohop) {
+        try (Session session = sessionFactory.openSession()) {
+            // Tạo key đúng format: CCCD_manganh_matohop
+            String key = cccd + "_" + maNganh + "_" + maTohop;
+
+            String hql = "FROM DiemCongXettuyen WHERE dcKeys = :key";
+            Query<DiemCongXettuyen> query = session.createQuery(hql, DiemCongXettuyen.class);
+            query.setParameter("key", key);
+
+            return query.uniqueResult();
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi tìm điểm cộng theo dcKeys: " + e.getMessage(), e);
         }
     }
 }

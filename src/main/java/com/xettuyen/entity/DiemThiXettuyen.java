@@ -19,7 +19,7 @@ public class DiemThiXettuyen {
     @Column(name = "d_phuongthuc")
     private String dPhuongThuc;
 
-    @Column(name = "TO")
+    @Column(name = "`TO`")
     private Double to;
 
     @Column(name = "LI")
@@ -37,7 +37,7 @@ public class DiemThiXettuyen {
     @Column(name = "DI")
     private Double di;
 
-    @Column(name = "VA")
+    @Column(name = "`VA`")
     private Double va;
 
     @Column(name = "N1_THI", columnDefinition = "DECIMAL(8,2) COMMENT 'Điểm thi gốc'")
@@ -67,6 +67,9 @@ public class DiemThiXettuyen {
     @Column(name = "NK2")
     private Double nk2;
 
+    @Column(name = "Loai_Chung_Chi")
+    private String loaiChungChi;
+
     // Constructors
     public DiemThiXettuyen() {
     }
@@ -74,7 +77,7 @@ public class DiemThiXettuyen {
     public DiemThiXettuyen(String cccd, String soBaoDanh, String dPhuongThuc, Double to, Double li,
                            Double ho, Double si, Double su, Double di, Double va, Double n1Thi,
                            Double n1Cc, Double cncn, Double cnnn, Double ti, Double ktpl,
-                           Double nl1, Double nk1, Double nk2) {
+                           Double nl1, Double nk1, Double nk2, String loaiChungChi) {
         this.cccd = cccd;
         this.soBaoDanh = soBaoDanh;
         this.dPhuongThuc = dPhuongThuc;
@@ -94,6 +97,7 @@ public class DiemThiXettuyen {
         this.nl1 = nl1;
         this.nk1 = nk1;
         this.nk2 = nk2;
+        this.loaiChungChi = loaiChungChi;
     }
 
     // Getters and Setters
@@ -257,6 +261,14 @@ public class DiemThiXettuyen {
         this.nk2 = nk2;
     }
 
+    public String getLoaiChungChi() {
+        return loaiChungChi;
+    }
+
+    public void setLoaiChungChi(String loaiChungChi) {
+        this.loaiChungChi = loaiChungChi;
+    }
+
     @Override
     public String toString() {
         return "DiemThiXettuyen{" +
@@ -280,6 +292,7 @@ public class DiemThiXettuyen {
                 ", nl1=" + nl1 +
                 ", nk1=" + nk1 +
                 ", nk2=" + nk2 +
+                ", loaiChungChi='" + loaiChungChi + '\'' +
                 '}';
     }
 }

@@ -84,7 +84,6 @@ public class MainFrame extends JFrame {
 
     private CardLayout cardLayout;
     private JPanel     contentPanel;
-    private JLabel     breadcrumbLabel;
     private String     activeCard = "HOME";
 
     // ── Panels ────────────────────────────────────────────
@@ -158,13 +157,9 @@ public class MainFrame extends JFrame {
         titleLbl.setFont(new Font("Segoe UI", Font.BOLD, fontTitle));
         titleLbl.setForeground(Color.WHITE);
 
-        breadcrumbLabel = new JLabel("▸  Trang Chủ");
-        breadcrumbLabel.setFont(new Font("Segoe UI", Font.PLAIN, fontSub));
-        breadcrumbLabel.setForeground(new Color(0xB0, 0xCC, 0xFF));
 
         left.add(titleLbl);
         left.add(Box.createVerticalStrut(2));
-        left.add(breadcrumbLabel);
 
         // ── Right: user chip ──
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, clamp(vw(0.8f), 8, 14), 0));
@@ -329,6 +324,7 @@ public class MainFrame extends JFrame {
         addSidebarItem(sidebar, "🎓", "Quản Lý Ngành",     "NGANH",      itemH, false);
         addSidebarItem(sidebar, "📊", "Quản Lý Điểm",      "DIEM",       itemH, false);
         addSidebarItem(sidebar, "📋", "Nguyện Vọng",       "NGUYEN_VONG",itemH, false);
+        addSidebarItem(sidebar, "🔄", "Bảng Quy Đổi",       "BANG_QD", itemH, false);
 
         if ("admin".equalsIgnoreCase(userRole)) {
             sidebar.add(Box.createVerticalStrut(clamp(vh(1), 6, 12)));
@@ -372,7 +368,6 @@ public class MainFrame extends JFrame {
             return;
         }
         activeCard = card;
-        breadcrumbLabel.setText("▸  " + label);
         cardLayout.show(contentPanel, card);
 
         // Update active state on all SidebarButtons
@@ -390,15 +385,14 @@ public class MainFrame extends JFrame {
         contentPanel.setBackground(C_CONTENT_BG);
 
         homePanel       = new HomePanel(currentUser);
-        thiSinhPanel    = createPlaceholderPanel("👥", "Quản Lý Thí Sinh",
-                new String[]{"Danh sách thí sinh","Thêm / Sửa / Xóa","Tìm kiếm nâng cao","Import từ Excel"});
+        thiSinhPanel    = new CandidateManagementPanel();
         nganhPanel      = createPlaceholderPanel("🎓", "Quản Lý Ngành",
                 new String[]{"Danh sách ngành học","Thêm / Sửa / Xóa ngành","Quản lý tổ hợp môn","Bảng quy đổi điểm"});
-        diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
-                new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});
+        diemPanel = new DiemPanel();
+        /* diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
+                new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});*/
         nguyenVongPanel = new NguyenVongPanel();
-        userPanel       = createPlaceholderPanel("👤", "Quản Lý Hệ Thống",
-                new String[]{"Tài khoản người dùng","Phân quyền","Nhật ký hoạt động","Cấu hình hệ thống"});
+        userPanel       = new UserManagementPanel();
 
         contentPanel.add(homePanel,       "HOME");
         contentPanel.add(thiSinhPanel,    "THI_SINH");
@@ -406,7 +400,7 @@ public class MainFrame extends JFrame {
         contentPanel.add(diemPanel,       "DIEM");
         contentPanel.add(nguyenVongPanel, "NGUYEN_VONG");
         contentPanel.add(userPanel,       "USER");
-
+        contentPanel.add(new BangQuyDoiPanel(), "BANG_QD");
         return contentPanel;
     }
 

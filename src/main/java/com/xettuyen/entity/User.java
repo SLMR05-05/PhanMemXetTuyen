@@ -1,6 +1,7 @@
 package com.xettuyen.entity;
 
 import jakarta.persistence.*;
+import java.util.Date;
 
 /**
  * Entity User - Quản lý tài khoản người dùng
@@ -30,6 +31,14 @@ public class User {
 
     @Column(name = "is_active")
     private Boolean isActive;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "created_at", updatable = false, insertable = false)
+    private Date createdAt;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "updated_at", insertable = false)
+    private Date updatedAt;
 
     // ============ CONSTRUCTOR ============
     public User() {
@@ -108,6 +117,22 @@ public class User {
         this.isActive = isActive;
     }
 
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Date updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
     // ============ TOSTRING ============
     @Override
     public String toString() {
@@ -118,6 +143,8 @@ public class User {
                 ", fullName='" + fullName + '\'' +
                 ", role='" + role + '\'' +
                 ", isActive=" + isActive +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
                 '}';
     }
 }

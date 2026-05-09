@@ -4,6 +4,7 @@ import com.xettuyen.entity.NguyenVongXettuyen;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
+
 import java.util.List;
 
 /**
@@ -59,6 +60,15 @@ public class NguyenVongDAO extends BaseDAO<NguyenVongXettuyen> {
             return session.createQuery("SELECT COUNT(*) FROM NguyenVongXettuyen", Long.class).uniqueResult();
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi đếm nguyện vọng: " + e.getMessage(), e);
+        }
+    }
+
+    public List<NguyenVongXettuyen> findAll() {
+        try (Session session = sessionFactory.openSession()) {
+            // Lấy tất cả và sắp xếp theo CCCD và Thứ tự nguyện vọng cho ngăn nắp
+            return session.createQuery("FROM NguyenVongXettuyen ORDER BY nnCccd ASC, nvTt ASC", NguyenVongXettuyen.class).list();
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi lấy toàn bộ danh sách nguyện vọng: " + e.getMessage(), e);
         }
     }
 }
