@@ -5,6 +5,9 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * NganhToHopDAO - DAO cho Entity NganhTohop
  */
@@ -29,6 +32,17 @@ public class NganhToHopDAO extends BaseDAO<NganhTohop> {
             return result;
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi tìm ngành - tổ hợp: " + e.getMessage(), e);
+        }
+    }
+
+    public List<NganhTohop> findByMaNganh(String maNganh) {
+        try (Session session = sessionFactory.openSession()) {
+            // Sử dụng HQL để lấy tất cả tổ hợp thuộc về mã ngành
+            String hql = "FROM NganhTohop n WHERE n.maNganh = :maNganh";
+            return session.createQuery(hql, NganhTohop.class).setParameter("maNganh", maNganh).getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
         }
     }
 }

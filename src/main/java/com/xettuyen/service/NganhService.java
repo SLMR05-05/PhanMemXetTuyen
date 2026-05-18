@@ -3,6 +3,7 @@ package com.xettuyen.service;
 import com.xettuyen.dao.*;
 import com.xettuyen.entity.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * NganhService - Service Layer cho Nganh
@@ -24,8 +25,8 @@ public class NganhService {
         // Lấy tất cả tổ hợp của ngành này
         List<NganhTohop> allNganhToHop = nganhToHopDAO.findAll(NganhTohop.class);
         List<NganhTohop> nganhToHopList = allNganhToHop.stream()
-                .filter(nt -> nt.getMaNganh().equals(maNganh))
-                .toList();
+            .filter(nt -> nt.getMaNganh().equals(maNganh))
+            .collect(Collectors.toList());
 
         return new NganhDetail(nganh, nganhToHopList);
     }
