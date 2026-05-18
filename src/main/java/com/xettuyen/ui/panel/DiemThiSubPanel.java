@@ -16,7 +16,9 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -73,7 +75,7 @@ public class DiemThiSubPanel extends JPanel {
         btnEdit.setForeground(Color.BLACK);
         JButton btnDelete = createStyledButton("Xóa", MainFrame.C_DANGER);
 
-        JButton btnImport = createStyledButton("Nhập Excel", new Color(0, 150, 136));
+        JButton btnImport = createStyledButton("Nhập Excel ▼", new Color(0, 150, 136));
         btnImport.setForeground(Color.WHITE);
         JButton btnExport = createStyledButton("Xuất Excel", new Color(76, 175, 80));
         btnExport.setForeground(Color.WHITE);
@@ -156,7 +158,7 @@ public class DiemThiSubPanel extends JPanel {
         btnAdd.addActionListener(e -> handleAdd());
         btnEdit.addActionListener(e -> handleEdit());
         btnDelete.addActionListener(e -> handleDelete());
-        btnImport.addActionListener(e -> handleImport());
+        btnImport.addActionListener(e -> showImportMenu(btnImport));
         btnExport.addActionListener(e -> handleExport());
 
         loadData();
@@ -281,53 +283,104 @@ public class DiemThiSubPanel extends JPanel {
         }
     }
 
-    private void handleImport() {
+    private void showImportMenu(JButton anchor) {
+        JPopupMenu menu = new JPopupMenu();
+
+        JMenuItem importThiTotNghiep = new JMenuItem("Import điểm thi tốt nghiệp");
+        importThiTotNghiep.addActionListener(e -> handleImportDiemTotNghiep());
+
+        JMenuItem importDgnlVsat = new JMenuItem("Import DGNL và VSAT");
+        importDgnlVsat.addActionListener(e -> handleImportDgnlVsat());
+
+        menu.add(importThiTotNghiep);
+        menu.add(importDgnlVsat);
+        menu.show(anchor, 0, anchor.getHeight());
+    }
+
+    private void handleImportDiemTotNghiep() {
         JFileChooser fs = new JFileChooser();
-        fs.setDialogTitle("Chọn file Excel điểm thí sinh");
+        fs.setDialogTitle("Chọn file Excel điểm thi tốt nghiệp");
         fs.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
 
-        if (fs.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            String filePath = fs.getSelectedFile().getPath();
+        if (fs.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        String filePath = fs.getSelectedFile().getPath();
 
-            // Chạy ngầm Task để tránh treo giao diện nếu file nặng
-            new SwingWorker<Integer, Void>() {
-                @Override
-                protected Integer doInBackground() throws Exception {
-                    List<DiemThiXettuyen> list = new ExcelImportService().importDiemThi(filePath);
-                    int count = 0;
-                    for (DiemThiXettuyen dt : list) {
-                        // Kiểm tra xem CCCD đã tồn tại trong DB chưa
-                        List<DiemThiXettuyen> existing = DAOFactory.getDiemThiDAO().findByCCCD(dt.getCccd());
-
-                        if (!existing.isEmpty()) {
-                            // Nếu tồn tại -> Cập nhật (giữ nguyên ID cũ)
-                            DiemThiXettuyen dbItem = existing.get(0);
-                            dt.setIdDiemThi(dbItem.getIdDiemThi());
-                            DAOFactory.getDiemThiDAO().update(dt);
-                        } else {
-                            // Nếu chưa có -> Lưu mới
-                            DAOFactory.getDiemThiDAO().save(dt);
-                        }
-                        count++;
+        new SwingWorker<Integer, Void>() {
+            @Override
+            protected Integer doInBackground() {
+                List<DiemThiXettuyen> list = new ExcelImportService().importDiemThi(filePath);
+                int count = 0;
+                for (DiemThiXettuyen dt : list) {
+                    List<DiemThiXettuyen> existing = DAOFactory.getDiemThiDAO().findByCCCD(dt.getCccd());
+                    if (!existing.isEmpty()) {
+                        DiemThiXettuyen dbItem = existing.get(0);
+                        dt.setIdDiemThi(dbItem.getIdDiemThi());
+                        DAOFactory.getDiemThiDAO().update(dt);
+                    } else {
+                        DAOFactory.getDiemThiDAO().save(dt);
                     }
-                    return count;
+                    count++;
                 }
+                return count;
+            }
 
-                @Override
-                protected void done() {
-                    try {
-                        int total = get();
-                        DiemPanel.addLog("Import Excel thành công: " + total + " thí sinh.");
-                        loadData(); // Load lại bảng
-                        JOptionPane.showMessageDialog(DiemThiSubPanel.this,
-                                "Đã xử lý thành công " + total + " dòng dữ liệu!");
-                    } catch (Exception e) {
-                        JOptionPane.showMessageDialog(DiemThiSubPanel.this,
-                                "Lỗi khi import: " + e.getMessage());
-                    }
+            @Override
+            protected void done() {
+                try {
+                    int total = get();
+                    DiemPanel.addLog("Import điểm thi tốt nghiệp thành công: " + total + " bản ghi.");
+                    loadData();
+                    JOptionPane.showMessageDialog(DiemThiSubPanel.this,
+                            "Đã xử lý thành công " + total + " bản ghi!");
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(DiemThiSubPanel.this,
+                            "Lỗi khi import: " + e.getMessage());
                 }
-            }.execute();
-        }
+            }
+        }.execute();
+    }
+
+    private void handleImportDgnlVsat() {
+        JFileChooser fs = new JFileChooser();
+        fs.setDialogTitle("Chọn file Excel DGNL và VSAT");
+        fs.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+        if (fs.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        String filePath = fs.getSelectedFile().getPath();
+
+        new SwingWorker<Integer, Void>() {
+            @Override
+            protected Integer doInBackground() {
+                List<DiemThiXettuyen> list = new ExcelImportService().importDGNLvaVSAT(filePath);
+                int count = 0;
+                for (DiemThiXettuyen dt : list) {
+                    List<DiemThiXettuyen> existing = DAOFactory.getDiemThiDAO().findByCCCD(dt.getCccd());
+                    if (!existing.isEmpty()) {
+                        DiemThiXettuyen dbItem = existing.get(0);
+                        dt.setIdDiemThi(dbItem.getIdDiemThi());
+                        DAOFactory.getDiemThiDAO().update(dt);
+                    } else {
+                        DAOFactory.getDiemThiDAO().save(dt);
+                    }
+                    count++;
+                }
+                return count;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    int total = get();
+                    DiemPanel.addLog("Import DGNL/VSAT thành công: " + total + " bản ghi.");
+                    loadData();
+                    JOptionPane.showMessageDialog(DiemThiSubPanel.this,
+                            "Đã xử lý thành công " + total + " bản ghi!");
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(DiemThiSubPanel.this,
+                            "Lỗi khi import: " + e.getMessage());
+                }
+            }
+        }.execute();
     }
 
     private void handleExport() {

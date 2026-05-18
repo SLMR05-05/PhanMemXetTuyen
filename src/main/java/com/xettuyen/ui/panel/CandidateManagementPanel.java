@@ -21,7 +21,7 @@ import javax.swing.table.DefaultTableModel;
 
 public class CandidateManagementPanel extends JPanel {
 
-    private static final int PAGE_SIZE = 10;
+    private static final int PAGE_SIZE = 20;
 
     private final ExcelImportService excelImportService = new ExcelImportService();
     private final ThiSinhService thiSinhService = new ThiSinhService();
@@ -331,7 +331,9 @@ public class CandidateManagementPanel extends JPanel {
         SwingWorker<Integer, Void> worker = new SwingWorker<>() {
             @Override
             protected Integer doInBackground() {
-                return excelImportService.importThiSinhVaDiemThi(file.getAbsolutePath());
+                // Only import candidate information (không import điểm)
+                java.util.List<ThiSinhXettuyen> list = excelImportService.importThiSinh(file.getAbsolutePath());
+                return list == null ? 0 : list.size();
             }
 
             @Override
@@ -343,7 +345,7 @@ public class CandidateManagementPanel extends JPanel {
                     int importedRows = get();
                     JOptionPane.showMessageDialog(
                         CandidateManagementPanel.this,
-                        "Đã import thành công " + importedRows + " dòng từ file đã chọn.",
+                        "Đã import thành công " + importedRows + " thí sinh (chỉ thông tin).",
                         "Import thành công",
                         JOptionPane.INFORMATION_MESSAGE
                     );

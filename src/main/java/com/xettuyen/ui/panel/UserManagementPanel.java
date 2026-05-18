@@ -81,7 +81,7 @@ public class UserManagementPanel extends JPanel {
 
 		/* North (Search) ================================================================================ */
 		JPanel northPanel = new JPanel(new GridBagLayout());
-		northPanel.setBackground(Color.red);
+		northPanel.setBackground(C_CONTENT_BG);
 		northPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
 		searchField = new JTextField();
@@ -120,7 +120,7 @@ public class UserManagementPanel extends JPanel {
 
 		/* Center (Table) ============================================================================== */
 		JPanel centerPanel = new JPanel(new BorderLayout());
-		centerPanel.setBackground(Color.yellow);
+		centerPanel.setBackground(C_CONTENT_BG);
 		centerPanel.setBorder(new EmptyBorder(0, 10, 10, 10));
 
 		String[] headers = {"ID", "Username", "Email", "Fullname", "Role", "Active", "Chức năng"};
