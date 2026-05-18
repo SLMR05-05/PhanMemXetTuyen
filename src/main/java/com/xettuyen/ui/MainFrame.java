@@ -43,6 +43,8 @@ import com.xettuyen.ui.panel.DiemPanel;
 import com.xettuyen.ui.panel.HomePanel;
 import com.xettuyen.ui.panel.ToHopPanel;
 import com.xettuyen.ui.panel.UserManagementPanel;
+import com.xettuyen.ui.panel.NguyenVongPanel;
+import com.xettuyen.ui.panel.NganhPanel;
 /**
  * MainFrame – Modern Redesign (đồng bộ với LoginForm v2)
  *
@@ -422,15 +424,10 @@ public class MainFrame extends JFrame {
 
         homePanel       = new HomePanel(currentUser);
         thiSinhPanel    = new CandidateManagementPanel();
-        nganhPanel      = createPlaceholderPanel("🎓", "Quản Lý Ngành",
-                new String[]{"Danh sách ngành học","Thêm / Sửa / Xóa ngành","Quản lý tổ hợp môn","Bảng quy đổi điểm"});
-        diemPanel = new DiemPanel();
-        /* diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
-                new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});*/
+        nganhPanel      = new NganhPanel();
+        diemPanel       = new DiemPanel();
         nguyenVongPanel = new NguyenVongPanel();
-        toHopPanel = new ToHopPanel();        
-        nguyenVongPanel = createPlaceholderPanel("📋", "Quản Lý Nguyện Vọng",
-                new String[]{"Danh sách nguyện vọng","Nhập nguyện vọng","Tính điểm xét tuyển","Kết quả trúng tuyển"});
+        toHopPanel      = new ToHopPanel();        
         userPanel       = new UserManagementPanel();
 
         contentPanel.add(homePanel,       "HOME");

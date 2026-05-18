@@ -3,6 +3,7 @@ package com.xettuyen.dao;
 import com.xettuyen.entity.NganhTohop;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 
 import java.util.Collections;
@@ -45,4 +46,17 @@ public class NganhToHopDAO extends BaseDAO<NganhTohop> {
             return Collections.emptyList();
         }
     }
+
+    public long countByMaTohop(String maTohop) {
+        try (Session session = sessionFactory.openSession()) {
+            String hql = "SELECT COUNT(*) FROM NganhTohop WHERE maTohop = :maTohop";
+            Query<Long> query = session.createQuery(hql, Long.class);
+            query.setParameter("maTohop", maTohop);
+            Long count = query.uniqueResult();
+            return count == null ? 0L : count;
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi đếm mapping ngành - tổ hợp: " + e.getMessage(), e);
+        }
+    }
+
 }
