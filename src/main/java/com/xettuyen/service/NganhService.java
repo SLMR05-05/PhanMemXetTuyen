@@ -3,6 +3,7 @@ package com.xettuyen.service;
 import com.xettuyen.dao.*;
 import com.xettuyen.entity.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * NganhService - Service Layer cho Nganh
@@ -25,13 +26,29 @@ public class NganhService {
         List<NganhTohop> allNganhToHop = nganhToHopDAO.findAll(NganhTohop.class);
         List<NganhTohop> nganhToHopList = allNganhToHop.stream()
             .filter(nt -> nt.getMaNganh().equals(maNganh))
-            .toList();
+            .collect(Collectors.toList());
 
         return new NganhDetail(nganh, nganhToHopList);
     }
 
     /**
-     * Tạo ngành mới
+     * Lưu ngành mới.
+     */
+    public boolean saveNganh(Nganh nganh) {
+        try {
+            if (nganh != null) {
+                nganhDAO.save(nganh);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi lưu ngành mới: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Tạo ngành mới theo từng trường dữ liệu.
      */
     public void createNganh(String maNganh, String tenNganh, int chiTieu) {
         Nganh nganh = new Nganh();
@@ -39,6 +56,56 @@ public class NganhService {
         nganh.setTenNganh(tenNganh);
         nganh.setNChiTieu(chiTieu);
         nganhDAO.save(nganh);
+    }
+
+    /**
+     * Cập nhật ngành hiện có.
+     */
+    public boolean updateNganh(Nganh nganh) {
+        try {
+            if (nganh != null && nganh.getIdNganh() != null) {
+                nganhDAO.update(nganh);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi cập nhật ngành: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Xóa ngành theo ID.
+     */
+    public boolean deleteNganh(Integer idNganh) {
+        try {
+            Nganh nganh = nganhDAO.findById(Nganh.class, idNganh);
+            if (nganh != null) {
+                nganhDAO.delete(nganh);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi xóa ngành: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Xóa một tổ hợp môn của ngành.
+     */
+    public boolean deleteNganhTohop(Integer id) {
+        try {
+            NganhTohop toDelete = nganhToHopDAO.findById(NganhTohop.class, id);
+            if (toDelete != null) {
+                nganhToHopDAO.delete(toDelete);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            System.err.println("Lỗi khi xóa tổ hợp ngành: " + e.getMessage());
+            return false;
+        }
     }
 
     /**

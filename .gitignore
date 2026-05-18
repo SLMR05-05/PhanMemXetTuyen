@@ -1,14 +1,19 @@
 # Maven build output
 /target/
-
+*.class
+.settings/
+.project
+.classpath
 # IDE files
 /.idea/
 *.iml
 /.vscode/
-
+node_modules/
 # OS files
 .DS_Store
 Thumbs.db
 
 # Logs
 *.log
+
+.env

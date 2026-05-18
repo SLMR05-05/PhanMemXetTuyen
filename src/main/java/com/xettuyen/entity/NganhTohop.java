@@ -40,7 +40,7 @@ public class NganhTohop {
     @Column(name = "N1")
     private Integer n1;
 
-    @Column(name = "TO")
+    @Column(name = "`TO`")
     private Integer to;
 
     @Column(name = "LI")

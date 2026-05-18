@@ -19,6 +19,11 @@
         <property name="hibernate.format_sql">true</property>
         <property name="hibernate.use_sql_comments">true</property>
 
+        <!-- Batch -->
+        <property name="hibernate.jdbc.batch_size">50</property>
+        <property name="hibernate.order_inserts">true</property>
+        <property name="hibernate.order_updates">true</property>
+
         <!-- Connection Pool -->
         <property name="hibernate.c3p0.min_size">5</property>
         <property name="hibernate.c3p0.max_size">20</property>
@@ -43,6 +48,7 @@
         <mapping class="com.xettuyen.entity.NguyenVongXettuyen"/>
         <mapping class="com.xettuyen.entity.ThiSinhXettuyen"/>
         <mapping class="com.xettuyen.entity.TohopMonthi"/>
+        <mapping class="com.xettuyen.entity.ToHop"/>
 
     </session-factory>
 </hibernate-configuration>

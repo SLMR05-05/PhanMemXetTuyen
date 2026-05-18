@@ -142,4 +142,26 @@ public abstract class BaseDAO<T> {
             throw new RuntimeException("Lỗi khi đếm dữ liệu: " + e.getMessage(), e);
         }
     }
+
+    public void saveOrUpdateAll(List<T> entities) {
+        Transaction transaction = null;
+        try (Session session = sessionFactory.openSession()) {
+            transaction = session.beginTransaction();
+            int count = 0;
+            for (T entity : entities) {
+                // saveOrUpdate tự động xử lý việc đã tồn tại hay chưa
+                session.saveOrUpdate(entity);
+
+                // Xả bộ nhớ đệm mỗi 50 dòng để tối ưu Batching
+                if (++count % 50 == 0) {
+                    session.flush();
+                    session.clear();
+                }
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
+            throw new RuntimeException("Lỗi Batch Upsert: " + e.getMessage(), e);
+        }
+    }
 }
