@@ -1,14 +1,48 @@
 package com.xettuyen.ui;
 
-import javax.swing.*;
-import javax.swing.border.AbstractBorder;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
+import java.awt.RenderingHints;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
-import java.awt.geom.Area;
-import java.awt.geom.Rectangle2D;
-import com.xettuyen.ui.panel.*;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSeparator;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import javax.swing.border.EmptyBorder;
+
+import com.xettuyen.ui.panel.BangQuyDoiPanel;
+import com.xettuyen.ui.panel.CandidateManagementPanel;
+import com.xettuyen.ui.panel.DiemPanel;
+import com.xettuyen.ui.panel.HomePanel;
+import com.xettuyen.ui.panel.ToHopPanel;
+import com.xettuyen.ui.panel.UserManagementPanel;
 /**
  * MainFrame – Modern Redesign (đồng bộ với LoginForm v2)
  *
@@ -84,7 +118,6 @@ public class MainFrame extends JFrame {
 
     private CardLayout cardLayout;
     private JPanel     contentPanel;
-    private JLabel     breadcrumbLabel;
     private String     activeCard = "HOME";
 
     // ── Panels ────────────────────────────────────────────
@@ -94,6 +127,7 @@ public class MainFrame extends JFrame {
     private JPanel diemPanel;
     private JPanel nguyenVongPanel;
     private JPanel userPanel;
+    private JPanel toHopPanel;
 
     public MainFrame(String username, String role) {
         this.currentUser = username;
@@ -158,13 +192,9 @@ public class MainFrame extends JFrame {
         titleLbl.setFont(new Font("Segoe UI", Font.BOLD, fontTitle));
         titleLbl.setForeground(Color.WHITE);
 
-        breadcrumbLabel = new JLabel("▸  Trang Chủ");
-        breadcrumbLabel.setFont(new Font("Segoe UI", Font.PLAIN, fontSub));
-        breadcrumbLabel.setForeground(new Color(0xB0, 0xCC, 0xFF));
 
         left.add(titleLbl);
         left.add(Box.createVerticalStrut(2));
-        left.add(breadcrumbLabel);
 
         // ── Right: user chip ──
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, clamp(vw(0.8f), 8, 14), 0));
@@ -328,7 +358,9 @@ public class MainFrame extends JFrame {
         addSidebarItem(sidebar, "👥", "Quản Lý Thí Sinh",  "THI_SINH",   itemH, false);
         addSidebarItem(sidebar, "🎓", "Quản Lý Ngành",     "NGANH",      itemH, false);
         addSidebarItem(sidebar, "📊", "Quản Lý Điểm",      "DIEM",       itemH, false);
+        addSidebarItem(sidebar, "📚", "Quản Lý Tổ Hợp", "TO_HOP", itemH, false);
         addSidebarItem(sidebar, "📋", "Nguyện Vọng",       "NGUYEN_VONG",itemH, false);
+        addSidebarItem(sidebar, "🔄", "Bảng Quy Đổi",       "BANG_QD", itemH, false);
 
         if ("admin".equalsIgnoreCase(userRole)) {
             sidebar.add(Box.createVerticalStrut(clamp(vh(1), 6, 12)));
@@ -372,7 +404,6 @@ public class MainFrame extends JFrame {
             return;
         }
         activeCard = card;
-        breadcrumbLabel.setText("▸  " + label);
         cardLayout.show(contentPanel, card);
 
         // Update active state on all SidebarButtons
@@ -393,8 +424,10 @@ public class MainFrame extends JFrame {
         thiSinhPanel    = new CandidateManagementPanel();
         nganhPanel      = createPlaceholderPanel("🎓", "Quản Lý Ngành",
                 new String[]{"Danh sách ngành học","Thêm / Sửa / Xóa ngành","Quản lý tổ hợp môn","Bảng quy đổi điểm"});
-        diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
-                new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});
+        diemPanel = new DiemPanel();
+        /* diemPanel       = createPlaceholderPanel("📊", "Quản Lý Điểm",
+                new String[]{"Nhập điểm thi","Điểm cộng / ưu tiên","Lịch sử chỉnh sửa","Export kết quả"});*/
+        toHopPanel = new ToHopPanel();        
         nguyenVongPanel = createPlaceholderPanel("📋", "Quản Lý Nguyện Vọng",
                 new String[]{"Danh sách nguyện vọng","Nhập nguyện vọng","Tính điểm xét tuyển","Kết quả trúng tuyển"});
         userPanel       = new UserManagementPanel();
@@ -403,9 +436,10 @@ public class MainFrame extends JFrame {
         contentPanel.add(thiSinhPanel,    "THI_SINH");
         contentPanel.add(nganhPanel,      "NGANH");
         contentPanel.add(diemPanel,       "DIEM");
+        contentPanel.add(toHopPanel, "TO_HOP");
         contentPanel.add(nguyenVongPanel, "NGUYEN_VONG");
         contentPanel.add(userPanel,       "USER");
-
+        contentPanel.add(new BangQuyDoiPanel(), "BANG_QD");
         return contentPanel;
     }
 

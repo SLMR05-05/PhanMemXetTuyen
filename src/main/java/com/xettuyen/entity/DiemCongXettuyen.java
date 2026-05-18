@@ -3,7 +3,7 @@ package com.xettuyen.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "xt_diemcongxetuyen")
+@Table(name = "xt_diemcongxettuyen")
 public class DiemCongXettuyen {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

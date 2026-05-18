@@ -43,6 +43,7 @@
         <mapping class="com.xettuyen.entity.NguyenVongXettuyen"/>
         <mapping class="com.xettuyen.entity.ThiSinhXettuyen"/>
         <mapping class="com.xettuyen.entity.TohopMonthi"/>
+        <mapping class="com.xettuyen.entity.ToHop"/>
 
     </session-factory>
 </hibernate-configuration>
