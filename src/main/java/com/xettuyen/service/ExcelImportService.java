@@ -1,6 +1,5 @@
 package com.xettuyen.service;
 
-import com.xettuyen.entity.DiemCongXettuyen;
 import com.xettuyen.entity.DiemThiXettuyen;
 import com.xettuyen.entity.ThiSinhXettuyen;
 import com.xettuyen.util.HibernateUtil;
@@ -129,60 +128,43 @@ public class ExcelImportService {
      * @return Danh sách thí sinh đã import
      */
     public List<ThiSinhXettuyen> importThiSinh(String filePath) {
-        List<ThiSinhXettuyen> thiSinhList = new ArrayList<>();
+        List<DsThiSinhRow> rows = readDsThiSinhRows(filePath);
+        List<ThiSinhXettuyen> persisted = new ArrayList<>();
 
-        try (FileInputStream file = new FileInputStream(filePath);
-             Workbook workbook = new XSSFWorkbook(file)) {
+        if (rows.isEmpty()) return persisted;
 
-            Sheet sheet = workbook.getSheetAt(0);
-            int rowCount = 0;
+        Session session = null;
+        Transaction tx = null;
 
-            // Bỏ qua dòng header (dòng 0)
-            for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
-                Row row = sheet.getRow(i);
+        try {
+            session = sessionFactory.openSession();
+            tx = session.beginTransaction();
 
-                // Bỏ qua row null hoặc row trống
-                if (row == null || isRowEmpty(row)) {
-                    continue;
-                }
+            for (DsThiSinhRow r : rows) {
+                ThiSinhXettuyen thiSinh = new ThiSinhXettuyen();
+                thiSinh.setCccd(r.cccd);
+                thiSinh.setHo(r.ho);
+                thiSinh.setTen(r.ten);
+                thiSinh.setNgaySinh(r.ngaySinh);
+                thiSinh.setGioiTinh(r.gioiTinh);
+                thiSinh.setDoiTuong(r.doiTuong);
+                thiSinh.setKhuVuc(r.khuVuc);
+                thiSinh.setNoiSinh(r.noiSinh);
 
-                try {
-                    ThiSinhXettuyen thiSinh = new ThiSinhXettuyen();
-
-                    // Đọc từng cell - kiểm tra null và ép kiểu an toàn
-                    thiSinh.setCccd(getCellValueAsString(row, 0));
-                    thiSinh.setSoBaoDanh(getCellValueAsString(row, 1));
-                    thiSinh.setHo(getCellValueAsString(row, 2));
-                    thiSinh.setTen(getCellValueAsString(row, 3));
-                    thiSinh.setNgaySinh(getCellValueAsString(row, 4));
-                    thiSinh.setDienThoai(getCellValueAsString(row, 5));
-                    thiSinh.setGioiTinh(getCellValueAsString(row, 6));
-                    thiSinh.setEmail(getCellValueAsString(row, 7));
-                    thiSinh.setNoiSinh(getCellValueAsString(row, 8));
-                    thiSinh.setDoiTuong(getCellValueAsString(row, 9));
-                    thiSinh.setKhuVuc(getCellValueAsString(row, 10));
-
-                    thiSinhList.add(thiSinh);
-                    rowCount++;
-
-                } catch (Exception e) {
-                    // Log lỗi nhưng tiếp tục đọc dòng tiếp theo
-                    System.err.println("⚠️ Lỗi khi xử lý dòng " + (i + 1) + ": " + e.getMessage());
-                    e.printStackTrace();
-                }
+                session.persist(thiSinh);
+                persisted.add(thiSinh);
             }
 
-            System.out.println("✅ Import thành công " + rowCount + " thí sinh từ " + filePath);
-
-        } catch (IOException e) {
-            System.err.println("❌ Lỗi khi đọc file " + filePath + ": " + e.getMessage());
-            e.printStackTrace();
+            tx.commit();
+            System.out.println("✅ Import thành công (thông tin thí sinh) : " + persisted.size() + " bản ghi từ " + filePath);
         } catch (Exception e) {
-            System.err.println("❌ Lỗi không xác định khi import thí sinh: " + e.getMessage());
-            e.printStackTrace();
+            if (tx != null) tx.rollback();
+            throw new RuntimeException("Lỗi khi import thí sinh: " + e.getMessage(), e);
+        } finally {
+            if (session != null) session.close();
         }
 
-        return thiSinhList;
+        return persisted;
     }
 
     private List<DsThiSinhRow> readDsThiSinhRows(String filePath) {
@@ -382,6 +364,327 @@ public class ExcelImportService {
         }
 
         return diemCongList;
+    }
+
+    /**
+     * Import điểm DGNL và VSAT từ cùng file Excel.
+    * Sheet 1: VSAT, Sheet 2: DGNL.
+     * VSAT được gom theo CCCD và map TENMONTHI/MAMONTHI sang đúng cột DB.
+     * DGNL được lưu vào NL1.
+     */
+    public List<DiemThiXettuyen> importDGNLvaVSAT(String filePath) {
+        Map<String, DiemThiXettuyen> result = new LinkedHashMap<>();
+
+        try (FileInputStream file = new FileInputStream(filePath);
+             Workbook workbook = new XSSFWorkbook(file)) {
+
+            if (workbook.getNumberOfSheets() > 0) {
+                importVsatSheet(workbook.getSheetAt(0), result);
+            }
+
+            if (workbook.getNumberOfSheets() > 1) {
+                importDgnlSheet(workbook.getSheetAt(1), result);
+            }
+
+            System.out.println("✅ Import DGNL & VSAT: đọc được " + result.size() + " thí sinh từ " + filePath);
+
+        } catch (IOException e) {
+            System.err.println("❌ Lỗi khi đọc file " + filePath + ": " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi không xác định khi import DGNL/VSAT: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return new ArrayList<>(result.values());
+    }
+
+    private void importVsatSheet(Sheet sheet, Map<String, DiemThiXettuyen> result) {
+        if (sheet == null || sheet.getPhysicalNumberOfRows() == 0) return;
+
+        Row header = sheet.getRow(0);
+        if (header == null) return;
+
+        int cccdIdx = findHeaderIndex(header, "cmnd", "cccd");
+        int tenMonIdx = findHeaderIndex(header, "tenmonthi", "ten mon thi", "ten mon");
+        int maMonIdx = findHeaderIndex(header, "mamonthi", "ma mon thi", "ma mon");
+        int diemIdx = findHeaderIndex(header, "diem");
+
+        // Heuristics to find session/date/company columns to identify an exam session
+        int dateIdx = findHeaderIndex(header, "ngay", "ngay thi", "date", "ngày");
+        int sessionIdx = findHeaderIndex(header, "dot", "lan", "n1_vs", "dot thi", "lan thi");
+        int unitIdx = findHeaderIndex(header, "truong", "donvi", "don vi", "co so", "school");
+
+        if (cccdIdx == -1) cccdIdx = 1;
+        if (tenMonIdx == -1 && maMonIdx != -1) tenMonIdx = maMonIdx;
+        if (diemIdx == -1) diemIdx = 8;
+
+        // Local holder for scanned rows
+        class ScoreRow {
+            String cccd;
+            String tenMon;
+            String maMon;
+            Double diem;
+            Date date;
+            int rowIndex;
+            String sessionKey;
+        }
+
+        // Map: cccd -> (sessionKey -> list of ScoreRow)
+        Map<String, Map<String, List<ScoreRow>>> grouped = new LinkedHashMap<>();
+
+        for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null || isRowEmpty(row)) continue;
+
+            String cccd = getCellValueAsString(row, cccdIdx);
+            if (cccd.isEmpty()) continue;
+
+            String tenMon = tenMonIdx >= 0 ? getCellValueAsString(row, tenMonIdx) : "";
+            String maMon = maMonIdx >= 0 ? getCellValueAsString(row, maMonIdx) : "";
+            Double diem = getCellValueAsDouble(row, diemIdx);
+
+            Date parsedDate = null;
+            if (dateIdx >= 0) {
+                String dateStr = getCellValueAsString(row, dateIdx);
+                if (!dateStr.isEmpty()) {
+                    try {
+                        parsedDate = dateFormat.parse(dateStr);
+                    } catch (Exception ignored) {
+                        parsedDate = null;
+                    }
+                }
+            }
+
+            String sessionPart = sessionIdx >= 0 ? getCellValueAsString(row, sessionIdx) : "";
+            String unitPart = unitIdx >= 0 ? getCellValueAsString(row, unitIdx) : "";
+
+            String sessionKey = (parsedDate != null ? String.valueOf(parsedDate.getTime()) : "")
+                    + "|" + normalizeText(sessionPart)
+                    + "|" + normalizeText(unitPart);
+
+            ScoreRow sr = new ScoreRow();
+            sr.cccd = cccd;
+            sr.tenMon = tenMon;
+            sr.maMon = maMon;
+            sr.diem = diem;
+            sr.date = parsedDate;
+            sr.rowIndex = i;
+            sr.sessionKey = sessionKey;
+
+            Map<String, List<ScoreRow>> sessions = grouped.computeIfAbsent(cccd, k -> new LinkedHashMap<>());
+            List<ScoreRow> list = sessions.computeIfAbsent(sessionKey, k -> new ArrayList<>());
+            list.add(sr);
+        }
+
+        // For each candidate, pick the best session (prefer latest date, otherwise the session with most-recent row)
+        for (Map.Entry<String, Map<String, List<ScoreRow>>> entry : grouped.entrySet()) {
+            String cccd = entry.getKey();
+            Map<String, List<ScoreRow>> sessions = entry.getValue();
+
+            String bestKey = null;
+            Date bestDate = null;
+            int bestMaxRow = -1;
+
+            for (Map.Entry<String, List<ScoreRow>> se : sessions.entrySet()) {
+                String key = se.getKey();
+                List<ScoreRow> rows = se.getValue();
+
+                // try to recover date from sessionKey (first part)
+                Date d = null;
+                try {
+                    String[] parts = key.split("\\|", 3);
+                    if (parts.length > 0 && !parts[0].isEmpty()) {
+                        long ms = Long.parseLong(parts[0]);
+                        d = new Date(ms);
+                    }
+                } catch (Exception ignored) {
+                    d = null;
+                }
+
+                if (d != null) {
+                    if (bestDate == null || d.after(bestDate)) {
+                        bestDate = d;
+                        bestKey = key;
+                    }
+                } else {
+                    int maxRow = rows.stream().mapToInt(r -> r.rowIndex).max().orElse(-1);
+                    if (bestDate == null) { // only compare row positions if no dates found yet
+                        if (bestKey == null || maxRow > bestMaxRow) {
+                            bestMaxRow = maxRow;
+                            bestKey = key;
+                        }
+                    }
+                }
+            }
+
+            if (bestKey == null) continue;
+
+            List<ScoreRow> chosen = sessions.get(bestKey);
+            DiemThiXettuyen diemThi = result.computeIfAbsent(cccd, key -> {
+                DiemThiXettuyen item = new DiemThiXettuyen();
+                item.setCccd(key);
+                item.setDPhuongThuc("3");
+                return item;
+            });
+
+            // apply scores from chosen session only
+            for (ScoreRow r : chosen) {
+                applyScoreToDiemThi(diemThi, r.tenMon, r.maMon, r.diem);
+            }
+        }
+    }
+
+    private void importDgnlSheet(Sheet sheet, Map<String, DiemThiXettuyen> result) {
+        if (sheet == null || sheet.getPhysicalNumberOfRows() == 0) return;
+
+        Row header = sheet.getRow(0);
+        if (header == null) return;
+
+        int cccdIdx = findHeaderIndex(header, "cmnd", "cccd");
+        int diemIdx = findHeaderIndex(header, "diem");
+
+        if (cccdIdx == -1) cccdIdx = 1;
+        if (diemIdx == -1) diemIdx = 8;
+
+        // Multiple DGNL rows per candidate may exist across sessions; keep the highest DGNL value
+        for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null || isRowEmpty(row)) continue;
+
+            String cccd = getCellValueAsString(row, cccdIdx);
+            if (cccd.isEmpty()) continue;
+
+            Double diem = getCellValueAsDouble(row, diemIdx);
+            if (diem == null) continue;
+
+            DiemThiXettuyen diemThi = result.computeIfAbsent(cccd, key -> {
+                DiemThiXettuyen item = new DiemThiXettuyen();
+                item.setCccd(key);
+                item.setDPhuongThuc("0");
+                return item;
+            });
+
+            Double current = diemThi.getNl1();
+            if (current == null || diem > current) {
+                diemThi.setNl1(diem);
+            }
+        }
+    }
+
+    private void applyScoreToDiemThi(DiemThiXettuyen diemThi, String tenMon, String maMon, Double diem) {
+        if (diemThi == null || diem == null) return;
+
+        String subject = normalizeSubjectName(tenMon, maMon);
+        if (subject.isEmpty()) return;
+
+        if (matchesAny(subject, "toan", "toan hoc", "math")) {
+            diemThi.setTo(diem);
+            return;
+        }
+        if (matchesAny(subject, "ngu van", "van", "van hoc", "literature")) {
+            diemThi.setVa(diem);
+            return;
+        }
+        if (matchesAny(subject, "vat ly", "ly", "physics")) {
+            diemThi.setLi(diem);
+            return;
+        }
+        if (matchesAny(subject, "hoa hoc", "hoa", "chemistry")) {
+            diemThi.setHo(diem);
+            return;
+        }
+        if (matchesAny(subject, "sinh hoc", "sinh", "biology")) {
+            diemThi.setSi(diem);
+            return;
+        }
+        if (matchesAny(subject, "lich su", "su", "history")) {
+            diemThi.setSu(diem);
+            return;
+        }
+        if (matchesAny(subject, "dia ly", "dia", "geography")) {
+            diemThi.setDi(diem);
+            return;
+        }
+        if (matchesAny(subject, "tieng anh", "anh", "english")) {
+            if (diemThi.getN1Thi() == null) {
+                diemThi.setN1Thi(diem);
+                diemThi.setN1Cc(diem);
+            } else if (diemThi.getN1Cc() == null) {
+                diemThi.setN1Cc(diem);
+            }
+            return;
+        }
+        if (matchesAny(subject, "tin hoc", "tin", "informatics")) {
+            diemThi.setTi(diem);
+            return;
+        }
+        if (matchesAny(subject, "cong nghe cn", "cong nghe cong nghiep", "cncn")) {
+            diemThi.setCncn(diem);
+            return;
+        }
+        if (matchesAny(subject, "cong nghe nn", "cong nghe nong nghiep", "cnnn")) {
+            diemThi.setCnnn(diem);
+            return;
+        }
+        if (matchesAny(subject, "kt phap luat", "gdkpl", "ktpl")) {
+            diemThi.setKtpl(diem);
+            return;
+        }
+        if (matchesAny(subject, "nang khieu 1", "nk1")) {
+            diemThi.setNk1(diem);
+            return;
+        }
+        if (matchesAny(subject, "nang khieu 2", "nk2")) {
+            diemThi.setNk2(diem);
+            return;
+        }
+
+        if (diemThi.getLoaiChungChi() == null || diemThi.getLoaiChungChi().isBlank()) {
+            diemThi.setLoaiChungChi(tenMon);
+        }
+    }
+
+    private int findHeaderIndex(Row header, String... keywords) {
+        if (header == null) return -1;
+        int first = header.getFirstCellNum();
+        int last = header.getLastCellNum();
+        for (int i = first; i < last; i++) {
+            String value = normalizeText(getCellValueAsString(header, i));
+            for (String keyword : keywords) {
+                if (!keyword.isBlank() && value.contains(normalizeText(keyword))) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private String normalizeSubjectName(String tenMon, String maMon) {
+        String subject = normalizeText(tenMon);
+        if (subject.isEmpty()) subject = normalizeText(maMon);
+        return subject;
+    }
+
+    private String normalizeText(String text) {
+        if (text == null) return "";
+        return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[\\p{Punct}]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private boolean matchesAny(String value, String... candidates) {
+        String normalized = normalizeText(value);
+        for (String candidate : candidates) {
+            String normalizedCandidate = normalizeText(candidate);
+            if (!normalizedCandidate.isEmpty() && (normalized.equals(normalizedCandidate) || normalized.contains(normalizedCandidate))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
