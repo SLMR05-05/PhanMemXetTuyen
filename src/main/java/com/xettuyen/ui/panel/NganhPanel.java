@@ -3,10 +3,10 @@ package com.xettuyen.ui.panel;
 import com.xettuyen.dao.BaseDAO;
 import com.xettuyen.entity.Nganh;
 import com.xettuyen.service.NganhService;
-import com.xettuyen.ui.component.ActionColumnEditor; 
+import com.xettuyen.ui.component.ActionColumnEditor;
 import com.xettuyen.ui.component.ActionColumnRenderer;
 import com.xettuyen.ui.dialog.NganhAddDialog;
-import com.xettuyen.ui.dialog.NganhEditDialog; 
+import com.xettuyen.ui.dialog.NganhEditDialog;
 import com.xettuyen.util.HibernateUtil;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -17,6 +17,7 @@ import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 
 import java.awt.*;
+import java.io.File;
 import java.util.List;
 
 import static com.xettuyen.ui.MainFrame.*;
@@ -25,15 +26,16 @@ public class NganhPanel extends JPanel {
 
     private JTable table;
     private DefaultTableModel tableModel;
-    private final BaseDAO<Nganh> dao = new BaseDAO<Nganh>(HibernateUtil.getSessionFactory()) {};
-    private final NganhService nganhService = new NganhService(); 
+    private final BaseDAO<Nganh> dao = new BaseDAO<Nganh>(HibernateUtil.getSessionFactory()) {
+    };
+    private final NganhService nganhService = new NganhService();
 
     public NganhPanel() {
         initComponents();
         loadDataToTable();
     }
 
-private void initComponents() {
+    private void initComponents() {
         this.setLayout(new BorderLayout());
         this.setBackground(C_CONTENT_BG);
         int pad = clamp(vw(2), 20, 36);
@@ -48,8 +50,9 @@ private void initComponents() {
         titleLbl.setFont(new Font("Segoe UI", Font.BOLD, clamp(vh(2.8f), 22, 30)));
         titleLbl.setForeground(C_TITLE);
 
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel toolbar = new JPanel();
         toolbar.setOpaque(false);
+        toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.Y_AXIS));
 
         // --- 🔍 Ô TÌM KIẾM ĐÃ ĐƯỢC KÉO DÀI VÀ CĂN CHỈNH LẠI ---
         JTextField txtSearch = new JTextField() {
@@ -62,24 +65,24 @@ private void initComponents() {
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     g2.setColor(new Color(160, 160, 160)); // Màu xám nhẹ
                     g2.setFont(getFont().deriveFont(Font.ITALIC));
-                    
+
                     // Lấy thông số font để căn giữa theo chiều dọc
                     FontMetrics fm = g2.getFontMetrics();
                     int x = 10; // Cách lề trái 10px
                     int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
-                    
+
                     g2.drawString("Tìm kiếm bằng mã ngành hoặc tên ngành...", x, y);
                     g2.dispose();
                 }
             }
         };
-        
+
         // Tăng chiều dài lên 450 để khớp với dòng chữ dài
         txtSearch.setPreferredSize(new Dimension(450, 35));
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtSearch.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(new Color(200, 200, 200), 1, true),
-            new EmptyBorder(0, 10, 0, 10) // Padding trong để chữ không dính viền
+                new LineBorder(new Color(200, 200, 200), 1, true),
+                new EmptyBorder(0, 10, 0, 10) // Padding trong để chữ không dính viền
         ));
 
         JPanel searchBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
@@ -88,19 +91,37 @@ private void initComponents() {
 
         JButton btnAdd = createStyledButton("➕ Thêm Mới", C_PRIMARY);
         JButton btnRefresh = createStyledButton("🔄 Làm Mới", C_SUCCESS);
-        JButton btnDelete = createStyledButton("🗑 Xóa Dữ Liệu", new Color(220, 53, 69)); 
-        
+        JButton btnDelete = createStyledButton("🗑 Xóa Dữ Liệu", new Color(220, 53, 69));
+        JButton btnImportNganhToHop = createStyledButton("📥 Import Ngành-Tổ Hợp", new Color(13, 110, 253));
+        JButton btnImportNguong = createStyledButton("📥 Import Ngưỡng Đầu Vào", new Color(13, 202, 240));
+        JButton btnImportChiTieu = createStyledButton("📥 Import Chỉ Tiêu", new Color(25, 135, 84));
+
         btnAdd.setForeground(Color.BLACK);
         btnRefresh.setForeground(Color.BLACK);
         btnDelete.setForeground(Color.BLACK);
+        btnImportNganhToHop.setForeground(Color.WHITE);
+        btnImportNguong.setForeground(Color.WHITE);
+        btnImportChiTieu.setForeground(Color.WHITE);
 
-        toolbar.add(searchBox); 
-        toolbar.add(btnAdd);
-        toolbar.add(btnRefresh);
-        toolbar.add(btnDelete);
+        JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        searchRow.setOpaque(false);
+        searchRow.add(searchBox);
 
-        headerActions.add(titleLbl, BorderLayout.WEST);
-        headerActions.add(toolbar, BorderLayout.EAST);
+        JPanel actionRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        actionRow.setOpaque(false);
+        actionRow.add(btnAdd);
+        actionRow.add(btnRefresh);
+        actionRow.add(btnDelete);
+        actionRow.add(btnImportNganhToHop);
+        actionRow.add(btnImportNguong);
+        actionRow.add(btnImportChiTieu);
+
+        toolbar.add(searchRow);
+        toolbar.add(Box.createVerticalStrut(10));
+        toolbar.add(actionRow);
+
+        headerActions.add(titleLbl, BorderLayout.NORTH);
+        headerActions.add(toolbar, BorderLayout.CENTER);
 
         // --- 2. Table Area (Cấu hình 17 cột) ---
         JPanel tableCard = makeCard();
@@ -108,12 +129,12 @@ private void initComponents() {
         tableCard.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         String[] cols = {
-            "ID", "Mã Ngành", "Tên Ngành", "Tổ Hợp Gốc", "Chỉ Tiêu", 
-            "Điểm Sàn", "Điểm Chuẩn", "Tuyển Thẳng", "ĐGNL", "THPT", 
-            "VSAT", "SL XTT", "SL ĐGNL", "SL VSAT", "SL THPT", 
-            "Tổ hợp", "Thao tác" 
+                "ID", "Mã Ngành", "Tên Ngành", "Tổ Hợp Gốc", "Chỉ Tiêu",
+                "Điểm Sàn", "Điểm Chuẩn", "Tuyển Thẳng", "ĐGNL", "THPT",
+                "VSAT", "SL XTT", "SL ĐGNL", "SL VSAT", "SL THPT",
+                "Tổ hợp", "Thao tác"
         };
-        
+
         tableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int r, int c) {
@@ -122,9 +143,9 @@ private void initComponents() {
         };
 
         table = new JTable(tableModel);
-        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION); 
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF); 
-        styleTable(table); 
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        styleTable(table);
 
         // --- 🟢 BỘ LỌC (SORT 3 TRẠNG THÁI) ---
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<DefaultTableModel>(tableModel) {
@@ -156,9 +177,20 @@ private void initComponents() {
 
         // --- ⚡ LOGIC TÌM KIẾM TỨC THỜI ---
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                filter();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                filter();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                filter();
+            }
 
             private void filter() {
                 String text = txtSearch.getText().trim();
@@ -180,7 +212,8 @@ private void initComponents() {
         table.getColumnModel().getColumn(colTohop).setCellEditor(new ActionColumnEditor(new JCheckBox(), "menu", this));
 
         table.getColumnModel().getColumn(colThaoTac).setCellRenderer(new ActionColumnRenderer("edit_delete"));
-        table.getColumnModel().getColumn(colThaoTac).setCellEditor(new ActionColumnEditor(new JCheckBox(), "edit_delete", this));
+        table.getColumnModel().getColumn(colThaoTac)
+                .setCellEditor(new ActionColumnEditor(new JCheckBox(), "edit_delete", this));
 
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
@@ -193,27 +226,49 @@ private void initComponents() {
         this.add(tableCard, BorderLayout.CENTER);
 
         btnRefresh.addActionListener(e -> {
-            txtSearch.setText(""); 
+            txtSearch.setText("");
             loadDataToTable();
         });
         btnDelete.addActionListener(e -> executeDeleteLogic());
+        btnImportNganhToHop.addActionListener(e -> importExcelAndReload("Import ngành - tổ hợp", file -> {
+            NganhService.ImportResult result = nganhService.importNganhToHopFromExcel(file.getAbsolutePath());
+            JOptionPane.showMessageDialog(this,
+                    "Import ngành-tổ hợp xong: thêm " + result.inserted + ", cập nhật " + result.updated + ", bỏ qua "
+                            + result.skipped,
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE);
+        }));
+        btnImportNguong.addActionListener(e -> importExcelAndReload("Import ngưỡng đầu vào", file -> {
+            NganhService.ImportResult result = nganhService.importNguongDauVaoFromExcel(file.getAbsolutePath());
+            JOptionPane.showMessageDialog(this,
+                    "Import ngưỡng đầu vào xong: cập nhật " + result.updated + ", bỏ qua " + result.skipped,
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE);
+        }));
+        btnImportChiTieu.addActionListener(e -> importExcelAndReload("Import chỉ tiêu", file -> {
+            NganhService.ImportResult result = nganhService.importChiTieuFromExcel(file.getAbsolutePath());
+            JOptionPane.showMessageDialog(this,
+                    "Import chỉ tiêu xong: cập nhật " + result.updated + ", bỏ qua " + result.skipped,
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE);
+        }));
         btnAdd.addActionListener(e -> {
             Window owner = SwingUtilities.getWindowAncestor(this);
             NganhAddDialog dialog = new NganhAddDialog((Frame) owner);
             dialog.setVisible(true);
             if (dialog.isSaved()) {
-                loadDataToTable(); 
+                loadDataToTable();
             }
         });
     }
 
-
     // Hàm mở Dialog (Dùng chung cho icon 3 gạch và icon bút chì)
     public void openEditDialog() {
         int row = table.getSelectedRow();
-        if (row == -1) return;
+        if (row == -1)
+            return;
         Integer id = Integer.valueOf(table.getValueAt(row, 0).toString());
-        
+
         new Thread(() -> {
             try {
                 Nganh selected = dao.findById(Nganh.class, id);
@@ -223,11 +278,13 @@ private void initComponents() {
                     dialog.setVisible(true);
                     loadDataToTable();
                 });
-            } catch (Exception ex) { ex.printStackTrace(); }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }).start();
     }
 
-/**
+    /**
      * Hàm xử lý Xóa: Hỗ trợ xóa hàng loạt và lách luật biến final của Java
      */
     public void executeDeleteLogic() {
@@ -235,24 +292,27 @@ private void initComponents() {
         int[] selectedRows = table.getSelectedRows();
 
         if (selectedRows.length == 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất một dòng để xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất một dòng để xóa!", "Thông báo",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         // 2. Hỏi xác nhận một lần duy nhất cho tất cả các dòng đã chọn
-        String message = selectedRows.length == 1 ? "Bạn có chắc muốn xóa ngành này?" : "Bạn có chắc muốn xóa " + selectedRows.length + " ngành đã chọn?";
-        int confirm = JOptionPane.showConfirmDialog(this, message, "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE);
-        
+        String message = selectedRows.length == 1 ? "Bạn có chắc muốn xóa ngành này?"
+                : "Bạn có chắc muốn xóa " + selectedRows.length + " ngành đã chọn?";
+        int confirm = JOptionPane.showConfirmDialog(this, message, "Xác nhận xóa", JOptionPane.YES_NO_OPTION,
+                JOptionPane.ERROR_MESSAGE);
+
         if (confirm == JOptionPane.YES_OPTION) {
             new Thread(() -> {
                 // Dùng mảng 1 phần tử để lách lỗi "variable must be final"
-                final int[] successCount = {0}; 
-                
+                final int[] successCount = { 0 };
+
                 for (int rowIndex : selectedRows) {
                     try {
                         // Lấy ID từ cột 0 của từng dòng
                         Integer id = Integer.valueOf(table.getValueAt(rowIndex, 0).toString());
-                        
+
                         // Gọi Service xóa và tăng biến đếm nếu thành công
                         if (nganhService.deleteNganh(id)) {
                             successCount[0]++;
@@ -270,42 +330,46 @@ private void initComponents() {
             }).start();
         }
     }
+
     public void loadDataToTable() {
         new Thread(() -> {
             try {
                 List<Nganh> list = dao.findAll(Nganh.class);
                 SwingUtilities.invokeLater(() -> {
                     tableModel.setRowCount(0);
-                    if (list == null) return;
+                    if (list == null)
+                        return;
                     for (Nganh n : list) {
-                        tableModel.addRow(new Object[]{
-                            n.getIdNganh(), n.getMaNganh(), n.getTenNganh(), n.getNTohopGoc(),
-                            n.getNChiTieu(), n.getNDiemSan(), n.getNDiemTrungTuyen(),
-                            n.getNTuyenThang(), n.getNDgNl(), n.getNThpt(), n.getNVsat(),
-                            n.getSlXtt(), n.getSlDgNl(), n.getSlVsat(), n.getSlThpt(),
-                            "", "" // Giữ chỗ cho 2 cột Icon
+                        tableModel.addRow(new Object[] {
+                                n.getIdNganh(), n.getMaNganh(), n.getTenNganh(), n.getNTohopGoc(),
+                                n.getNChiTieu(), n.getNDiemSan(), n.getNDiemTrungTuyen(),
+                                n.getNTuyenThang(), n.getNDgNl(), n.getNThpt(), n.getNVsat(),
+                                n.getSlXtt(), n.getSlDgNl(), n.getSlVsat(), n.getSlThpt(),
+                                "", "" // Giữ chỗ cho 2 cột Icon
                         });
                     }
                 });
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }).start();
     }
 
     private void styleTable(JTable table) {
         table.setRowHeight(55); // Tăng chiều cao để icon không bị sát nhau
         TableColumnModel columnModel = table.getColumnModel();
-        
+
         columnModel.getColumn(0).setPreferredWidth(60);
         columnModel.getColumn(1).setPreferredWidth(100);
         columnModel.getColumn(2).setPreferredWidth(280);
-        
+
         // Căn lề và độ rộng cho 2 cột cuối
         columnModel.getColumn(table.getColumnCount() - 2).setPreferredWidth(80);
         columnModel.getColumn(table.getColumnCount() - 1).setPreferredWidth(120);
-        
+
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-        
+
         // Căn giữa cho các cột số liệu
         for (int i = 3; i < table.getColumnCount() - 2; i++) {
             columnModel.getColumn(i).setPreferredWidth(110);
@@ -322,5 +386,24 @@ private void initComponents() {
         b.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return b;
+    }
+
+    private void importExcelAndReload(String title, java.util.function.Consumer<File> importer) {
+        JFileChooser chooser = new JFileChooser();
+        int result = chooser.showOpenDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File file = chooser.getSelectedFile();
+        try {
+            importer.accept(file);
+            loadDataToTable();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Lỗi khi " + title.toLowerCase() + ": " + ex.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 }

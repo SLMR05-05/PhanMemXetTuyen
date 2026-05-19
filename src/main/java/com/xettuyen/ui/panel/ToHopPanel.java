@@ -1,15 +1,23 @@
 package com.xettuyen.ui.panel;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
+import java.awt.Insets;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -18,9 +26,12 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.JTableHeader;
 
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
@@ -30,6 +41,8 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import com.xettuyen.entity.TohopMonthi;
 import com.xettuyen.service.ToHopMonThiService;
+
+import static com.xettuyen.ui.MainFrame.*;
 
 public class ToHopPanel extends JPanel {
 
@@ -60,25 +73,57 @@ public class ToHopPanel extends JPanel {
 
     public ToHopPanel() {
         setLayout(new BorderLayout());
+        setBackground(C_CONTENT_BG);
         initUI();
         initEvents();
         loadData(1);
     }
 
     private void initUI() {
-        JPanel root = new JPanel(new BorderLayout(10, 10));
-        root.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        // ==========================================
+        // 1. TẠO TOOLBAR TỔNG HỢP (TOP PANEL)
+        // ==========================================
+        JPanel topPanel = new JPanel(new BorderLayout(0, 10));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
+                BorderFactory.createEmptyBorder(15, 20, 15, 20)));
 
-        JPanel top = new JPanel();
-        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        // --- TẦNG 1: Tiêu đề & Ô Tìm Kiếm ---
+        JPanel headerSearchPanel = new JPanel(new BorderLayout());
+        headerSearchPanel.setOpaque(false);
 
-        JPanel searchPanel = new JPanel(new BorderLayout(10, 10));
-        searchPanel.setBorder(BorderFactory.createTitledBorder("Tìm kiếm tổ hợp"));
+        JLabel lblTitle = new JLabel("QUẢN LÝ TỔ HỢP MÔN");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        lblTitle.setForeground(new Color(41, 128, 185));
+
         searchField = new JTextField();
-        searchPanel.add(searchField, BorderLayout.CENTER);
+        searchField.setPreferredSize(new Dimension(250, 32));
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1, true),
+                BorderFactory.createEmptyBorder(0, 12, 0, 12)));
+        searchField.setBackground(Color.WHITE);
 
-        JPanel form = new JPanel(new GridLayout(3, 4, 10, 10));
-        form.setBorder(BorderFactory.createTitledBorder("Thông tin tổ hợp"));
+        JPanel searchBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        searchBox.setOpaque(false);
+        JLabel lblSearch = new JLabel("Tìm kiếm: ");
+        lblSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchBox.add(lblSearch);
+        searchBox.add(searchField);
+
+        headerSearchPanel.add(lblTitle, BorderLayout.WEST);
+        headerSearchPanel.add(searchBox, BorderLayout.EAST);
+
+        // --- TẦNG 2: Form Nhập Liệu (Sử dụng GridBagLayout) ---
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(8, 10, 8, 10);
+        gbc.weightx = 1.0;
+
+        // Initialize text fields
         txtId = new JTextField();
         txtId.setEditable(false);
         txtMa = new JTextField();
@@ -87,24 +132,82 @@ public class ToHopPanel extends JPanel {
         txtMon3 = new JTextField();
         txtTen = new JTextField();
 
-        form.add(new JLabel("ID:"));
-        form.add(txtId);
-        form.add(new JLabel("Mã tổ hợp:"));
-        form.add(txtMa);
-        form.add(new JLabel("Môn 1:"));
-        form.add(txtMon1);
-        form.add(new JLabel("Môn 2:"));
-        form.add(txtMon2);
-        form.add(new JLabel("Môn 3:"));
-        form.add(txtMon3);
-        form.add(new JLabel("Tên tổ hợp:"));
-        form.add(txtTen);
-        form.add(new JLabel(""));
+        configureField(txtId, true);
+        configureField(txtMa, false);
+        configureField(txtMon1, false);
+        configureField(txtMon2, false);
+        configureField(txtMon3, false);
+        configureField(txtTen, false);
 
-        top.add(searchPanel);
-        top.add(form);
-        root.add(top, BorderLayout.NORTH);
+        // DÒNG 1 CỦA FORM: Mã Tổ Hợp, Môn 1, Môn 2, Môn 3
+        gbc.gridy = 0;
+        gbc.gridx = 0;
+        formPanel.add(new JLabel("Mã tổ hợp:"), gbc);
+        gbc.gridx = 1;
+        formPanel.add(txtMa, gbc);
 
+        gbc.gridx = 2;
+        formPanel.add(new JLabel("Môn 1:"), gbc);
+        gbc.gridx = 3;
+        formPanel.add(txtMon1, gbc);
+
+        gbc.gridx = 4;
+        formPanel.add(new JLabel("Môn 2:"), gbc);
+        gbc.gridx = 5;
+        formPanel.add(txtMon2, gbc);
+
+        gbc.gridx = 6;
+        formPanel.add(new JLabel("Môn 3:"), gbc);
+        gbc.gridx = 7;
+        formPanel.add(txtMon3, gbc);
+
+        // DÒNG 2 CỦA FORM: ID và Tên Tổ Hợp
+        gbc.gridy = 1;
+        gbc.gridx = 0;
+        formPanel.add(new JLabel("ID:"), gbc);
+        gbc.gridx = 1;
+        formPanel.add(txtId, gbc);
+
+        gbc.gridx = 2;
+        formPanel.add(new JLabel("Tên tổ hợp:"), gbc);
+        gbc.gridx = 3;
+        gbc.gridwidth = 5;
+        formPanel.add(txtTen, gbc);
+        gbc.gridwidth = 1;
+
+        // --- TẦNG 3: Nhóm Nút Bấm ---
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setOpaque(false);
+
+        btnAdd = createStyledButton("Thêm mới", C_PRIMARY, Color.WHITE);
+        btnUpdate = createStyledButton("Chỉnh sửa", new Color(0x14, 0xA7, 0x8A), Color.WHITE);
+        btnDelete = createStyledButton("Xóa", C_DANGER, Color.WHITE);
+        btnImport = createStyledButton("Import Excel", new Color(0x13, 0x6F, 0xFD), Color.WHITE);
+        btnClear = createStyledButton("Làm mới", C_SUCCESS, Color.WHITE);
+
+        buttonPanel.add(btnAdd);
+        buttonPanel.add(btnUpdate);
+        buttonPanel.add(btnDelete);
+        buttonPanel.add(btnImport);
+        buttonPanel.add(btnClear);
+
+        // Gộp Form và Button vào 1 khối
+        JPanel controlArea = new JPanel(new BorderLayout(0, 10));
+        controlArea.setOpaque(false);
+        controlArea.add(formPanel, BorderLayout.CENTER);
+        controlArea.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Lắp ráp toàn bộ Toolbar
+        topPanel.add(headerSearchPanel, BorderLayout.NORTH);
+        topPanel.add(controlArea, BorderLayout.CENTER);
+
+        JPanel root = new JPanel(new BorderLayout(0, 0));
+        root.setBackground(C_CONTENT_BG);
+        root.add(topPanel, BorderLayout.NORTH);
+
+        // ==========================================
+        // 2. TẠO BẢNG DỮ LIỆU
+        // ==========================================
         model = new DefaultTableModel(new String[] { "ID", "Mã tổ hợp", "Môn 1", "Môn 2", "Môn 3", "Tên tổ hợp" }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -113,46 +216,75 @@ public class ToHopPanel extends JPanel {
         };
         table = new JTable(model);
         table.setAutoCreateRowSorter(true);
+
+        table.setRowHeight(40);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setFillsViewportHeight(true);
+        table.setSelectionBackground(new Color(0xDDE9FF));
+        table.setSelectionForeground(C_TEXT);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        JTableHeader header = table.getTableHeader();
+        header.setReorderingAllowed(false);
+        header.setPreferredSize(new Dimension(0, 38));
+        header.setBackground(C_PRIMARY);
+        header.setForeground(Color.WHITE);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer leftRenderer = new DefaultTableCellRenderer();
+        leftRenderer.setHorizontalAlignment(SwingConstants.LEFT);
+        leftRenderer.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+        centerRenderer.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+
         table.getColumnModel().getColumn(0).setPreferredWidth(70);
-        table.getColumnModel().getColumn(1).setPreferredWidth(120);
-        table.getColumnModel().getColumn(2).setPreferredWidth(120);
-        table.getColumnModel().getColumn(3).setPreferredWidth(120);
-        table.getColumnModel().getColumn(4).setPreferredWidth(120);
-        table.getColumnModel().getColumn(5).setPreferredWidth(180);
-        root.add(new JScrollPane(table), BorderLayout.CENTER);
+        table.getColumnModel().getColumn(1).setPreferredWidth(130);
+        table.getColumnModel().getColumn(2).setPreferredWidth(130);
+        table.getColumnModel().getColumn(3).setPreferredWidth(130);
+        table.getColumnModel().getColumn(4).setPreferredWidth(130);
+        table.getColumnModel().getColumn(5).setPreferredWidth(240);
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setCellRenderer(i == 5 ? leftRenderer : centerRenderer);
+        }
 
-        JPanel bottom = new JPanel(new BorderLayout(10, 10));
+        JScrollPane tableScrollPane = new JScrollPane(table);
+        tableScrollPane.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 20));
+        tableScrollPane.getViewport().setBackground(Color.WHITE);
+        tableScrollPane.setBackground(Color.WHITE);
+        tableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        btnAdd = new JButton("Thêm mới");
-        btnUpdate = new JButton("Chỉnh sửa");
-        btnDelete = new JButton("Xóa");
-        btnImport = new JButton("Import Excel");
-        btnClear = new JButton("Làm mới");
-        btnPanel.add(btnAdd);
-        btnPanel.add(btnUpdate);
-        btnPanel.add(btnDelete);
-        btnPanel.add(btnImport);
-        btnPanel.add(btnClear);
-        bottom.add(btnPanel, BorderLayout.NORTH);
+        root.add(tableScrollPane, BorderLayout.CENTER);
 
-        JPanel pagePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        btnPrev = new JButton("<<");
-        btnNext = new JButton(">>");
+        // ==========================================
+        // 3. TẠO THANH PHÂN TRANG (BOTTOM PANEL)
+        // ==========================================
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        bottom.setOpaque(false);
+
+        btnPrev = createNavButton("<");
+        btnNext = createNavButton(">");
         pageField = new JTextField("1");
         totalPageField = new JTextField("1");
-        pageField.setPreferredSize(new Dimension(50, 26));
-        totalPageField.setPreferredSize(new Dimension(50, 26));
+        pageField.setPreferredSize(new Dimension(54, 30));
+        totalPageField.setPreferredSize(new Dimension(54, 30));
         pageField.setHorizontalAlignment(JTextField.CENTER);
         totalPageField.setHorizontalAlignment(JTextField.CENTER);
         pageField.setEditable(false);
         totalPageField.setEditable(false);
-        pagePanel.add(btnPrev);
-        pagePanel.add(pageField);
-        pagePanel.add(new JLabel("/"));
-        pagePanel.add(totalPageField);
-        pagePanel.add(btnNext);
-        bottom.add(pagePanel, BorderLayout.SOUTH);
+        configureField(pageField, true);
+        configureField(totalPageField, true);
+
+        bottom.add(btnPrev);
+        bottom.add(pageField);
+        JLabel slash = new JLabel("/");
+        slash.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        slash.setForeground(C_HINT);
+        bottom.add(slash);
+        bottom.add(totalPageField);
+        bottom.add(btnNext);
 
         root.add(bottom, BorderLayout.SOUTH);
         add(root, BorderLayout.CENTER);
@@ -446,5 +578,47 @@ public class ToHopPanel extends JPanel {
                 message + "\n" + ex.getMessage(),
                 "Lỗi",
                 JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void configureField(JTextField field, boolean muted) {
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(C_BORDER, 1, true),
+                BorderFactory.createEmptyBorder(0, 10, 0, 10)));
+        field.setBackground(muted ? new Color(0xF8, 0xFA, 0xFF) : Color.WHITE);
+        field.setForeground(C_TEXT);
+    }
+
+    private JButton createStyledButton(String text, Color background, Color foreground) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color fill = getModel().isArmed() ? background.darker() : background;
+                if (getModel().isRollover()) {
+                    fill = fill.brighter();
+                }
+                g2.setColor(fill);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setForeground(foreground);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setFocusPainted(false);
+        button.setContentAreaFilled(false);
+        button.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
+        button.setOpaque(false);
+        button.setRolloverEnabled(true);
+        return button;
+    }
+
+    private JButton createNavButton(String text) {
+        JButton button = createStyledButton(text, C_PRIMARY, Color.WHITE);
+        button.setPreferredSize(new Dimension(42, 34));
+        return button;
     }
 }

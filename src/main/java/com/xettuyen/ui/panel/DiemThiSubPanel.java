@@ -338,6 +338,7 @@ public class DiemThiSubPanel extends JPanel {
                 }
             }
         }.execute();
+        loadData();
     }
 
     private void handleImportDgnlVsat() {
@@ -381,6 +382,7 @@ public class DiemThiSubPanel extends JPanel {
                 }
             }
         }.execute();
+        loadData();
     }
 
     private void handleExport() {

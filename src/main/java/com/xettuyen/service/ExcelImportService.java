@@ -376,7 +376,7 @@ public class ExcelImportService {
         Map<String, DiemThiXettuyen> result = new LinkedHashMap<>();
 
         try (FileInputStream file = new FileInputStream(filePath);
-             Workbook workbook = new XSSFWorkbook(file)) {
+             Workbook workbook = WorkbookFactory.create(file)) {
 
             if (workbook.getNumberOfSheets() > 0) {
                 importVsatSheet(workbook.getSheetAt(0), result);
