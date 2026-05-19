@@ -292,8 +292,12 @@ public class DiemThiSubPanel extends JPanel {
         JMenuItem importDgnlVsat = new JMenuItem("Import DGNL và VSAT");
         importDgnlVsat.addActionListener(e -> handleImportDgnlVsat());
 
+        JMenuItem importIelts = new JMenuItem("Import IELTS");
+        importIelts.addActionListener(e -> handleImportIelts());
+
         menu.add(importThiTotNghiep);
         menu.add(importDgnlVsat);
+        menu.add(importIelts);
         menu.show(anchor, 0, anchor.getHeight());
     }
 
@@ -378,6 +382,36 @@ public class DiemThiSubPanel extends JPanel {
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(DiemThiSubPanel.this,
                             "Lỗi khi import: " + e.getMessage());
+                }
+            }
+        }.execute();
+    }
+
+    private void handleImportIelts() {
+        JFileChooser fs = new JFileChooser();
+        fs.setDialogTitle("Chọn file Excel IELTS");
+        fs.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+        if (fs.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        String filePath = fs.getSelectedFile().getPath();
+
+        new SwingWorker<Integer, Void>() {
+            @Override
+            protected Integer doInBackground() {
+                return new ExcelImportService().importIelts(filePath);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    int total = get();
+                    DiemPanel.addLog("Import IELTS thành công: " + total + " bản ghi được cập nhật.");
+                    loadData();
+                    JOptionPane.showMessageDialog(DiemThiSubPanel.this,
+                            "Đã cập nhật thành công " + total + " bản ghi IELTS!");
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(DiemThiSubPanel.this,
+                            "Lỗi khi import IELTS: " + e.getMessage());
                 }
             }
         }.execute();
