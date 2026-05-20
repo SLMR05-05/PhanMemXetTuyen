@@ -183,7 +183,7 @@ public class ExcelImportService {
      */
     public int importIelts(String filePath) {
         Map<String, IeltsRow> bestByCccd = new LinkedHashMap<>();
-        Map<String, Double> currentN1ByCccd = new HashMap<>();
+        Map<String, Double> bestScoreByCccd = new HashMap<>();
 
         try (FileInputStream file = new FileInputStream(filePath);
              Workbook workbook = new XSSFWorkbook(file)) {
@@ -230,25 +230,17 @@ public class ExcelImportService {
                 Double diemQuyDoi = getCellValueAsDouble(row, diemQuyDoiIdx);
                 Double diemCong = getCellValueAsDouble(row, diemCongIdx);
                 String chungChi = getCellValueAsString(row, chungChiIdx);
-
-                Double currentN1 = currentN1ByCccd.get(cccd);
-                if (currentN1 == null) {
-                    currentN1 = loadCurrentN1Thi(filePath, cccd);
-                    currentN1ByCccd.put(cccd, currentN1);
-                }
-
-                IeltsRow current = bestByCccd.get(cccd);
-                double currentScore = valueOrZero(current == null ? null : current.diemQuyDoi)
-                        + valueOrZero(current == null ? null : current.diemCong);
-                double candidateScore = Math.max(valueOrZero(diemQuyDoi), valueOrZero(currentN1) + valueOrZero(diemCong));
-
-                if (current == null || candidateScore > currentScore) {
+                // Choose best row per CCCD based on diemQuyDoi (higher is better)
+                double fileRowScore = valueOrZero(diemQuyDoi);
+                Double prevBest = bestScoreByCccd.get(cccd);
+                if (prevBest == null || fileRowScore > prevBest) {
                     IeltsRow item = new IeltsRow();
                     item.cccd = cccd;
                     item.chungChi = chungChi;
                     item.diemQuyDoi = diemQuyDoi;
                     item.diemCong = diemCong;
                     bestByCccd.put(cccd, item);
+                    bestScoreByCccd.put(cccd, fileRowScore);
                 }
             }
         } catch (IOException e) {
@@ -277,17 +269,25 @@ public class ExcelImportService {
                     continue;
                 }
 
-                DiemThiXettuyen diemThi = existingList.get(0);
-                double candidateScore = Math.max(
-                        valueOrZero(row.diemQuyDoi),
-                        valueOrZero(diemThi.getN1Thi()) + valueOrZero(row.diemCong)
-                );
-                double currentScore = valueOrZero(diemThi.getN1Thi());
+                // valueA: điểm IELTS quy đổi (file)
+                double valueA = valueOrZero(row.diemQuyDoi);
 
-                if (candidateScore > currentScore) {
-                    diemThi.setN1Thi(candidateScore);
+                // valueB: N1_THI from records with d_phuongthuc = 4 (THPT)
+                double valueB = existingList.stream()
+                    .filter(e -> "4".equals(e.getDPhuongThuc()))
+                    .map(DiemThiXettuyen::getN1Thi)
+                    .filter(Objects::nonNull)
+                    .max(Double::compare)
+                    .orElse(0.0);
+
+                double candidateMax = Math.max(valueA, valueB);
+                DiemThiXettuyen diemThi = existingList.get(0);
+                double currentN1 = valueOrZero(diemThi.getN1Thi());
+
+                if (candidateMax > currentN1) {
+                    diemThi.setN1Thi(candidateMax);
                     if (row.chungChi != null && !row.chungChi.isBlank()) {
-                        diemThi.setLoaiChungChi(row.chungChi.trim());
+                        diemThi.setLoaiChungChi(truncate(row.chungChi, 50));
                     }
                     session.merge(diemThi);
                     updatedCount++;
@@ -782,8 +782,15 @@ public class ExcelImportService {
         }
 
         if (diemThi.getLoaiChungChi() == null || diemThi.getLoaiChungChi().isBlank()) {
-            diemThi.setLoaiChungChi(tenMon);
+            diemThi.setLoaiChungChi(truncate(tenMon, 50));
         }
+    }
+
+    private String truncate(String s, int maxLen) {
+        if (s == null) return null;
+        String t = s.trim();
+        if (t.length() <= maxLen) return t;
+        return t.substring(0, maxLen);
     }
 
     private int findHeaderIndex(Row header, String... keywords) {
@@ -854,6 +861,8 @@ public class ExcelImportService {
             }
         }
     }
+
+    
 
     /**
      * Import danh sách nguyện vọng từ file Excel

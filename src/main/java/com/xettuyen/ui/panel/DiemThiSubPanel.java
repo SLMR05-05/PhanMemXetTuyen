@@ -164,6 +164,8 @@ public class DiemThiSubPanel extends JPanel {
         loadData();
     }
 
+    
+
     private void loadData() {
         listDiemThi = DAOFactory.getDiemThiDAO().findAll(DiemThiXettuyen.class);
         updateTableAndStats();
