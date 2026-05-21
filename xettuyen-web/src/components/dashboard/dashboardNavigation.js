@@ -14,6 +14,11 @@ export const dashboardNavigation = [
         type: 'group',
         children: [
             {
+                key: 'search-admission',
+                label: 'Tra cứu nguyện vọng',
+                icon: Search,
+            },
+            {
                 key: 'search-exam',
                 label: 'Tra cứu điểm thi',
                 icon: Search,
@@ -40,6 +45,7 @@ export const dashboardNavigation = [
 
 export const dashboardPanelLabels = {
     overview: 'Trang Chủ',
+    'search-admission': 'Tra cứu nguyện vọng',
     'search-exam': 'Tra cứu điểm thi',
     'search-direct': 'Tra cứu tuyển thẳng',
     'search-english': 'Tra cứu điểm quy đổi Tiếng Anh',

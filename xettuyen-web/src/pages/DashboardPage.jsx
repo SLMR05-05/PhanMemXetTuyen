@@ -6,6 +6,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import OverviewPanel from './dashboard/panels/OverviewPanel';
 import AdmissionPanel from './dashboard/panels/AdmissionPanel';
 import SearchPanel from './dashboard/panels/SearchPanel';
+import NguyenVongLookupPanel from './dashboard/panels/NguyenVongLookupPanel';
 import { dashboardPanelLabels } from '../components/dashboard/dashboardNavigation';
 
 export default function DashboardPage() {
@@ -80,6 +81,8 @@ export default function DashboardPage() {
                         description="Khu vực tra cứu điểm thi theo số báo danh, phục vụ tách biệt với các chức năng khác trong dashboard."
                     />
                 );
+            case 'search-admission':
+                return <NguyenVongLookupPanel />;
             case 'search-direct':
                 return (
                     <SearchPanel
