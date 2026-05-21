@@ -13,6 +13,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 
 import java.util.List;
 
@@ -119,5 +121,61 @@ public class NguyenVongService {
                 entity.getNvKetqua(),
                 entity.getTtPhuongThuc(),
                 entity.getTtThm());
+    }
+
+    @Transactional
+    public List<NguyenVongDTO> swapNguyenVong(Authentication authentication, Integer id1, Integer id2) {
+        String cccd = getCurrentCccd(authentication);
+
+        // Lấy 2 nguyện vọng từ DB
+        NguyenVongXettuyen nv1 = nguyenVongRepository.findById(id1)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy nguyện vọng 1"));
+        NguyenVongXettuyen nv2 = nguyenVongRepository.findById(id2)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy nguyện vọng 2"));
+
+        // Xác thực bảo mật: Đảm bảo cả 2 nguyện vọng này đều thuộc về user đang đăng nhập
+        if (!nv1.getNnCccd().equals(cccd) || !nv2.getNnCccd().equals(cccd)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không có quyền chỉnh sửa nguyện vọng này.");
+        }
+
+        // Đổi chỗ thuộc tính nvTt (Thứ tự nguyện vọng)
+        Integer tempTt = nv1.getNvTt();
+        nv1.setNvTt(nv2.getNvTt());
+        nv2.setNvTt(tempTt);
+
+        // Lưu thay đổi
+        nguyenVongRepository.save(nv1);
+        nguyenVongRepository.save(nv2);
+
+        // Trả về danh sách mới đã được sắp xếp lại để Frontend cập nhật UI
+        return getCurrentStudentNguyenVong(authentication);
+    }
+
+    @Transactional
+    public void deleteNguyenVong(Authentication authentication, Integer idNv) {
+        String cccd = getCurrentCccd(authentication);
+
+        // 1. Tìm nguyện vọng cần xóa
+        NguyenVongXettuyen nvToDelete = nguyenVongRepository.findById(idNv)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy nguyện vọng cần xóa"));
+
+        // 2. Xác thực quyền (Chỉ cho phép sinh viên xóa nguyện vọng của chính mình)
+        if (!nvToDelete.getNnCccd().equals(cccd)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không có quyền xóa nguyện vọng này");
+        }
+
+        // 3. Thực hiện xóa
+        nguyenVongRepository.delete(nvToDelete);
+
+        // 4. Lấy danh sách các nguyện vọng còn lại và đánh lại số thứ tự (nvTt)
+        List<NguyenVongXettuyen> remainingList = nguyenVongRepository.findByNnCccdOrderByNvTtAsc(cccd);
+        int currentTt = 1;
+        for (NguyenVongXettuyen nv : remainingList) {
+            if (nv.getNvTt() != currentTt) {
+                nv.setNvTt(currentTt);
+                nguyenVongRepository.save(nv); // Cập nhật lại số thứ tự mới
+            }
+            currentTt++;
+        }
     }
 }

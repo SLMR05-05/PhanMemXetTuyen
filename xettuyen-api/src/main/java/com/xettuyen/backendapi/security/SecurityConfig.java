@@ -42,8 +42,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/nganh").permitAll()
-                        .requestMatchers("/api/nguyenvong").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/nguyenvong").permitAll()
                         .requestMatchers("/api/nguyenvong/lookup/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/nguyenvong/lookup").permitAll()
                         .anyRequest().authenticated())

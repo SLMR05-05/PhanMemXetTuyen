@@ -60,5 +60,47 @@ export const useNguyenVongStore = create((set) => ({
         }
     },
 
+    swapNguyenVong: async (id1, id2) => {
+        set({ loading: true, error: null });
+        try {
+            // API trả về danh sách mới nhất đã được sắp xếp
+            const updatedList = await nguyenVongService.swapNguyenVong(id1, id2);
+            set({
+                nguyenVongs: updatedList,
+                loading: false,
+            });
+            return true;
+        } catch (error) {
+            set({
+                error: error.message || 'Hoán đổi nguyện vọng thất bại',
+                loading: false,
+            });
+            throw error;
+        }
+    },
+
+    removeNguyenVong: async (idNv) => {
+        set({ loading: true, error: null });
+        try {
+            // 1. Gọi API xóa
+            await nguyenVongService.deleteNguyenVong(idNv);
+            
+            // 2. Fetch lại danh sách nguyện vọng để cập nhật số thứ tự (Thứ tự 1, 2, 3...) mới nhất
+            const updatedData = await nguyenVongService.getMyNguyenVong();
+            
+            set({
+                nguyenVongs: updatedData,
+                loading: false,
+            });
+            return true;
+        } catch (error) {
+            set({
+                error: error.message || 'Xóa nguyện vọng thất bại',
+                loading: false,
+            });
+            throw error;
+        }
+    },
+
     clearError: () => set({ error: null }),
 }));

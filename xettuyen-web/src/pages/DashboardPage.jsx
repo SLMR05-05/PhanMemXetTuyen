@@ -6,6 +6,8 @@ import DashboardLayout from '../components/DashboardLayout';
 import OverviewPanel from './dashboard/panels/OverviewPanel';
 import AdmissionPanel from './dashboard/panels/AdmissionPanel';
 import SearchPanel from './dashboard/panels/SearchPanel';
+import DiemThiPanel from './dashboard/panels/DiemThiPanel';
+import TuyenThangPanel from './dashboard/panels/TuyenThangPanel';
 import { dashboardPanelLabels } from '../components/dashboard/dashboardNavigation';
 
 export default function DashboardPage() {
@@ -75,16 +77,16 @@ export default function DashboardPage() {
                 );
             case 'search-exam':
                 return (
-                    <SearchPanel
+                    <DiemThiPanel
                         title={dashboardPanelLabels['search-exam']}
-                        description="Khu vực tra cứu điểm thi theo số báo danh, phục vụ tách biệt với các chức năng khác trong dashboard."
+                        description="Kết quả các kỳ thi được đồng bộ tự động từ cơ sở dữ liệu."
                     />
                 );
             case 'search-direct':
                 return (
-                    <SearchPanel
+                    <TuyenThangPanel
                         title={dashboardPanelLabels['search-direct']}
-                        description="Khu vực tra cứu tuyển thẳng được tách riêng để dễ mở rộng thành form hoặc dữ liệu thật sau này."
+                        description="Khu vực tra cứu hồ sơ tuyển thẳng và ưu tiên xét tuyển."
                     />
                 );
             case 'search-english':

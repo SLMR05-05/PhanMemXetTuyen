@@ -62,4 +62,12 @@ export const nguyenVongService = {
             throw error.response?.data || 'Failed to delete nguyện vọng';
         }
     },
+    swapNguyenVong: async (id1, id2) => {
+        try {
+            const response = await axiosInstance.put(`/nguyenvong/swap/${id1}/${id2}`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || 'Failed to swap nguyện vọng';
+        }
+    },
 };
