@@ -200,13 +200,15 @@ public class NganhService {
 
                     int rowNumber = row.getRowNum() + 1;
                     try {
-                        String maNganh = readCell(row, columns, formatter, 0, evaluator, "manganh", "ma nganh");
+                        String maNganh = readCell(row, columns, formatter, evaluator, "manganh", "ma nganh");
+                        String tenNganh = readCell(row, columns, formatter, evaluator,
+                            "ten_nganhchuan", "ten nganh chuan", "ten_nganh", "ten nganh");
                         String maToHopRaw = readCell(row, columns, formatter, 1, evaluator,
                                 "ma_to_hop", "ma_tohop", "ma to hop", "mato hop", "matohop", "ten_to_hop");
-                        String tbKeys = readCell(row, columns, formatter, 2, evaluator, "tb_keys", "tbkeys", "tb key");
+                        String tbKeys = readCell(row, columns, formatter, evaluator, "tb_keys", "tbkeys", "tb key");
                         String goc = readCell(row, columns, formatter, 3, evaluator, "goc", "gốc");
-                        String doLechValue = readCell(row, columns, formatter, 4, evaluator, "dolech", "do lech",
-                                "độ lệch");
+                        String doLechValue = readCell(row, columns, formatter, evaluator, "dolech", "do lech",
+                            "độ lệch", "do_lech");
 
                         if (maNganh.isEmpty()) {
                             log.warn("Dòng {}: thiếu MANGANH nên bỏ qua", rowNumber);
@@ -249,6 +251,27 @@ public class NganhService {
                             }
                         } else if (!maTohop.isEmpty()) {
                             maTohop = maTohop.split("\\s+")[0];
+                        }
+
+                        // Upsert ngành theo từng dòng: có rồi thì cập nhật, chưa có thì tạo mới
+                        Nganh nganh = session.createQuery("FROM Nganh WHERE maNganh = :ma", Nganh.class)
+                                .setParameter("ma", maNganh)
+                                .setMaxResults(1)
+                                .uniqueResult();
+                        if (nganh == null) {
+                            nganh = new Nganh();
+                            nganh.setMaNganh(maNganh);
+                            nganh.setTenNganh(tenNganh == null || tenNganh.trim().isEmpty() ? maNganh : tenNganh.trim());
+                            session.persist(nganh);
+                            session.flush();
+                            log.info("Đã thêm ngành mới {} / {} vào xt_nganh", maNganh, nganh.getTenNganh());
+                        } else {
+                            String safeTenNganh = tenNganh == null || tenNganh.trim().isEmpty() ? nganh.getTenNganh() : tenNganh.trim();
+                            if (safeTenNganh != null && !safeTenNganh.equals(nganh.getTenNganh())) {
+                                nganh.setTenNganh(safeTenNganh);
+                                session.merge(nganh);
+                                log.info("Đã cập nhật ngành {} / {} trong xt_nganh", maNganh, safeTenNganh);
+                            }
                         }
 
                         if (maTohop != null && !maTohop.isEmpty() && processedTohops.add(maTohop)) {
@@ -303,15 +326,14 @@ public class NganhService {
 
                         // If Gốc column indicates original tohop, update nganh.nTohopGoc
                         if (isGocValue(goc)) {
-                            if (maTohop == null || maTohop.isEmpty()) {
+                            if (nganh == null) {
+                                log.warn("Dòng {}: không tìm thấy ngành {} để cập nhật nTohopgoc", rowNumber, maNganh);
+                            } else if (maTohop == null || maTohop.isEmpty()) {
                                 log.warn("Dòng {}: Gốc = Gốc nhưng MA_TO_HOP rỗng, không cập nhật nTohopgoc",
                                         rowNumber);
                             } else {
-                                int affected = nganhDAO.updateTohopGocByMaNganh(session, maNganh, maTohop);
-                                if (affected <= 0) {
-                                    log.warn("Dòng {}: không tìm thấy ngành {} để cập nhật nTohopgoc", rowNumber,
-                                            maNganh);
-                                }
+                                nganh.setNTohopGoc(maTohop);
+                                session.merge(nganh);
                             }
                         }
 
@@ -369,8 +391,7 @@ public class NganhService {
             org.apache.poi.ss.usermodel.FormulaEvaluator evaluator = workbook.getCreationHelper()
                     .createFormulaEvaluator();
 
-            // 1. TỰ ĐỘNG TÌM DÒNG HEADER (Quét 5 dòng đầu tiên để tìm dòng chứa chữ 'ma
-            // nganh', 'ma ctdt' hoặc 'ma xet tuyen')
+            // 1. TỰ ĐỘNG TÌM DÒNG HEADER (Quét 5 dòng đầu tiên để tìm dòng chứa chữ 'mã xét tuyển')
             Row header = null;
             Map<String, Integer> columns = null;
             int headerRowIndex = 0;
@@ -379,9 +400,9 @@ public class NganhService {
                 Row tempRow = sheet.getRow(r);
                 Map<String, Integer> tempCols = buildHeaderIndexMap(tempRow, formatter);
 
-                // BỔ SUNG: "ma xet tuyen", "maxettuyen" để đọc được file Ngưỡng đầu vào
-                if (findColumn(tempCols, "manganh", "ma nganh", "mactdt", "ma ctdt", "ma xet tuyen",
-                        "maxettuyen") != null) {
+                // BỔ SUNG: "mã xét tuyển" và "tên ngành, chương trình đào tạo"
+                if (findColumn(tempCols, "ma xet tuyen", "maxettuyen", "manganh", "ma nganh", "mactdt",
+                    "ma ctdt") != null) {
                     header = tempRow;
                     columns = tempCols;
                     headerRowIndex = r;
@@ -391,94 +412,71 @@ public class NganhService {
 
             if (header == null || columns == null) {
                 throw new RuntimeException(
-                        "Không tìm thấy dòng tiêu đề chứa 'Mã CTĐT', 'Mã ngành' hoặc 'Mã xét tuyển' trong file Excel.");
+                    "Không tìm thấy dòng tiêu đề chứa 'Mã xét tuyển' hoặc 'Mã ngành' trong file Excel.");
             }
 
             final Map<String, Integer> finalColumns = columns;
-            final int finalHeaderRowIndex = headerRowIndex;
 
-            // 2. Chạy trong một Transaction đồng nhất
-            int[] totals = nganhToHopDAO.executeInTransaction(session -> {
-                int localUpdated = 0;
-                int localSkipped = 0;
-                int processed = 0;
+            // 2. Duyệt từng dòng và upsert trực tiếp qua DAO để tránh lỗi session/flush
+            for (int i = headerRowIndex + 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
 
-                // Bắt đầu đọc từ dòng ngay dưới dòng header
-                for (int i = finalHeaderRowIndex + 1; i <= sheet.getLastRowNum(); i++) {
-                    Row row = sheet.getRow(i);
+                if (row == null || isRowEmpty(row, formatter, evaluator)) {
+                    skipped++;
+                    continue;
+                }
 
-                    if (row == null || isRowEmpty(row, formatter, evaluator)) {
-                        localSkipped++;
-                        continue;
+                String maNganh = readCell(row, finalColumns, formatter, evaluator, "ma xet tuyen", "maxettuyen",
+                    "manganh", "ma nganh", "mactdt", "ma ctdt");
+                String tenNganh = readCell(row, finalColumns, formatter, evaluator,
+                    "ten nganh chuong trinh dao tao", "ten nganh", "ten nganh chuan",
+                    "ten ctdt", "tencdt");
+
+                if (maNganh.isEmpty() || isSummaryCode(maNganh)) {
+                    skipped++;
+                    continue;
+                }
+
+                String safeTenNganh = tenNganh == null || tenNganh.trim().isEmpty() ? maNganh : tenNganh.trim();
+                Nganh nganh = nganhDAO.findByMaNganh(maNganh);
+                boolean createdNew = false;
+
+                if (nganh == null) {
+                    nganh = new Nganh();
+                    nganh.setMaNganh(maNganh);
+                    nganh.setTenNganh(safeTenNganh);
+                    createdNew = true;
+                } else if (!safeTenNganh.equals(nganh.getTenNganh())) {
+                    nganh.setTenNganh(safeTenNganh);
+                }
+
+                if (updateNguongDauVao) {
+                    String diemSan = readCell(row, finalColumns, formatter, evaluator, "n_diemsan", "diem san",
+                            "nguong dau vao", "nguong", "diem chuan dau vao");
+                    Double parsedDiemSan = parseDouble(diemSan);
+                    if (parsedDiemSan != null) {
+                        nganh.setNDiemSan(parsedDiemSan);
                     }
-
-                    // 3. BỔ SUNG: alias "ma xet tuyen", "maxettuyen"
-                    String maNganh = readCell(row, finalColumns, formatter, evaluator, "manganh", "ma nganh", "mactdt",
-                            "ma ctdt", "ma xet tuyen", "maxettuyen");
-
-                    if (maNganh.isEmpty()) {
-                        localSkipped++;
-                        continue;
-                    }
-
-                    // Sử dụng trực tiếp `session` của transaction để query tránh Detached Entity
-                    org.hibernate.query.Query<Nganh> query = session.createQuery("FROM Nganh WHERE maNganh = :ma",
-                            Nganh.class);
-                    query.setParameter("ma", maNganh);
-                    Nganh nganh = query.getResultStream().findFirst().orElse(null);
-
-                    if (nganh == null) {
-                        log.warn("Dòng {}: Không tìm thấy mã ngành/CTĐT {} trong cơ sở dữ liệu", row.getRowNum() + 1,
-                                maNganh);
-                        localSkipped++;
-                        continue;
-                    }
-
-                    boolean isChanged = false;
-
-                    if (updateNguongDauVao) {
-                        String diemSan = readCell(row, finalColumns, formatter, evaluator, "n_diemsan", "diem san",
-                                "nguong dau vao", "nguong", "diem chuan dau vao");
-                        if (!diemSan.isEmpty()) {
-                            Double parsedDiemSan = parseDouble(diemSan);
-                            if (parsedDiemSan != null) {
-                                nganh.setNDiemSan(parsedDiemSan);
-                                isChanged = true;
-                            }
-                        }
-                    } else {
-                        String chiTieu = readCell(row, finalColumns, formatter, evaluator, "n_chitieu", "chi tieu",
-                                "chitieu", "chi tieu chot", "chitieuchot");
-                        if (!chiTieu.isEmpty()) {
-                            Integer parsedChiTieu = parseInteger(chiTieu);
-                            if (parsedChiTieu != null) {
-                                nganh.setNChiTieu(parsedChiTieu);
-                                isChanged = true;
-                            }
-                        }
-                    }
-
-                    if (isChanged) {
-                        // Sử dụng session.merge() để bám sát Transaction đang mở
-                        session.merge(nganh);
-                        localUpdated++;
-                    } else {
-                        localSkipped++;
-                    }
-
-                    // Batching flush để tối ưu RAM
-                    if (++processed % 50 == 0) {
-                        session.flush();
-                        session.clear();
+                } else {
+                    String chiTieu = readCell(row, finalColumns, formatter, evaluator, "n_chitieu", "chi tieu",
+                            "chitieu", "chi tieu chot", "chitieuchot");
+                    Integer parsedChiTieu = parseInteger(chiTieu);
+                    if (parsedChiTieu != null) {
+                        nganh.setNChiTieu(parsedChiTieu);
                     }
                 }
-                return new int[] { 0, localUpdated, localSkipped };
-            });
 
-            if (totals != null && totals.length == 3) {
-                inserted = totals[0];
-                updated = totals[1];
-                skipped = totals[2];
+                if (createdNew && nganh.getNChiTieu() == null) {
+                    nganh.setNChiTieu(0);
+                }
+
+                if (createdNew) {
+                    nganhDAO.save(nganh);
+                    inserted++;
+                } else {
+                    nganhDAO.update(nganh);
+                    updated++;
+                }
             }
 
         } catch (IOException e) {
@@ -628,6 +626,21 @@ public class NganhService {
 
     private boolean isGocValue(String value) {
         return value != null && !value.trim().isEmpty() && normalize(value).contains("goc");
+    }
+
+    private boolean isSummaryCode(String value) {
+        if (value == null) {
+            return true;
+        }
+        String normalized = value.trim();
+        if (normalized.isEmpty()) {
+            return true;
+        }
+        String compact = normalize(normalized);
+        if (compact.contains("tong") || compact.contains("cong") || compact.contains("total")) {
+            return true;
+        }
+        return !compact.matches("^[0-9]{6,8}(?:[a-z]{2,4})?$");
     }
 
     private Integer parseInteger(String value) {

@@ -187,6 +187,16 @@ public class ExcelImportService {
                 Workbook workbook = new XSSFWorkbook(file)) {
 
             Sheet sheet = workbook.getSheetAt(0);
+            // Tìm header để lấy chỉ mục các cột (đỡ dùng chỉ mục cứng như 35)
+            Row header = sheet.getRow(0);
+            int noiSinhIdx = -1;
+            if (header != null) {
+                noiSinhIdx = findHeaderIndex(header, "noi sinh", "noisinh", "noi_sinh");
+            }
+            // Nếu không tìm thấy header, dùng chỉ mục mặc định (8) — phù hợp format chuẩn
+            if (noiSinhIdx == -1) {
+                noiSinhIdx = 8;
+            }
 
             for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
                 Row row = sheet.getRow(i);
@@ -207,7 +217,7 @@ public class ExcelImportService {
                 data.gioiTinh = getCellValueAsString(row, 4);
                 data.doiTuong = getCellValueAsString(row, 5);
                 data.khuVuc = getCellValueAsString(row, 6);
-                data.noiSinh = getCellValueAsString(row, 35);
+                data.noiSinh = getCellValueAsString(row, noiSinhIdx);
 
                 data.to = getCellValueAsDouble(row, 7);
                 data.va = getCellValueAsDouble(row, 8);
