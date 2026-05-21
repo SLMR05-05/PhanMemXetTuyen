@@ -56,31 +56,34 @@ public class NguyenVongService {
     @Transactional
     public NguyenVongDTO createNguyenVong(Authentication authentication, NguyenVongRequestDTO requestDTO) {
         String cccd = getCurrentCccd(authentication);
-
-        ThiSinhXettuyen thiSinh = thiSinhRepository.findByCccd(cccd)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Thi sinh not found"));
-
-        Nganh nganh = nganhRepository.findByMaNganh(requestDTO.getMaNganh())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nganh not found"));
-
-        Integer thuTu = requestDTO.getThuTuNguyenVong();
-
+        
+        // 1. Kiểm tra xem sinh viên đã đăng ký nguyện vọng cho ngành này chưa
         if (nguyenVongRepository.existsByNnCccdAndNvMaNganh(cccd, requestDTO.getMaNganh())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nguyen vong for this nganh already exists");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Đã tồn tại nguyện vọng cho ngành này.");
         }
 
-        if (nguyenVongRepository.existsByNnCccdAndNvTt(cccd, thuTu)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nguyen vong order already exists");
+        // 2. Tự động tính toán thứ tự kế tiếp trong danh sách
+        List<NguyenVongXettuyen> danhSachHienTai = nguyenVongRepository.findByNnCccdOrderByNvTtAsc(cccd);
+        int thuTuKeTiep = 1;
+        if (danhSachHienTai != null && !danhSachHienTai.isEmpty()) {
+            // Lấy thứ tự của nguyện vọng cuối cùng trong danh sách và cộng thêm 1
+            thuTuKeTiep = danhSachHienTai.get(danhSachHienTai.size() - 1).getNvTt() + 1;
         }
 
+        // 3. Khởi tạo và lưu Nguyện vọng mới
         NguyenVongXettuyen entity = new NguyenVongXettuyen();
-        entity.setNnCccd(thiSinh.getCccd());
+        entity.setNnCccd(cccd);
         entity.setNvMaNganh(requestDTO.getMaNganh());
-        entity.setNvTt(thuTu);
-        entity.setTtPhuongThuc(requestDTO.getTtPhuongThuc());
-        entity.setTtThm(requestDTO.getTtThm());
-        entity.setNvKetqua("Chờ xét");
-        entity.setNvKeys(buildNvKey(cccd, requestDTO.getMaNganh(), thuTu));
+        entity.setNvTt(thuTuKeTiep); // Ghi đè thứ tự tự động tính
+        
+        // Cập nhật các thông tin khác...
+        
+        Nganh nganh = nganhRepository.findByMaNganh(requestDTO.getMaNganh()).orElse(null);
+        if (nganh != null) {
+            entity.setNvKetqua("Chờ xét");
+        }
+        
+        entity.setNvKeys(buildNvKey(cccd, requestDTO.getMaNganh()));
 
         NguyenVongXettuyen saved = nguyenVongRepository.save(entity);
         return toDto(saved, nganh);
@@ -93,8 +96,8 @@ public class NguyenVongService {
         return authentication.getName();
     }
 
-    private String buildNvKey(String cccd, String maNganh, Integer thuTu) {
-        return cccd + "_" + maNganh + "_" + thuTu;
+    private String buildNvKey(String cccd, String maNganh) {
+        return cccd + "_" + maNganh;
     }
 
     private NguyenVongDTO toDto(NguyenVongXettuyen entity) {

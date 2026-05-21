@@ -25,6 +25,7 @@ export const ERROR_MESSAGES = {
 export const ROUTES = {
     LOGIN: '/login',
     DASHBOARD: '/dashboard',
+    TRACUU: '/tracuu',
     NGUYEN_VONG: '/dashboard?tab=nguyenvong',
 };
 

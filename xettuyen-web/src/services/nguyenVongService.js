@@ -16,10 +16,12 @@ export const nguyenVongService = {
         try {
             const response = await axiosInstance.get('/nguyenvong/lookup', {
                 params: { cccd },
+                skipAuth: true,
             });
             return response.data;
         } catch (error) {
-            throw error.response?.data || 'Failed to lookup nguyện vọng';
+            const serverMessage = error.response?.data?.message || error.response?.data;
+            throw serverMessage || 'Failed to lookup nguyện vọng';
         }
     },
 

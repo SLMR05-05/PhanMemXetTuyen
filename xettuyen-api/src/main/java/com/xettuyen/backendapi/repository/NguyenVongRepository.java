@@ -12,6 +12,8 @@ public interface NguyenVongRepository extends JpaRepository<NguyenVongXettuyen, 
 
     Optional<NguyenVongXettuyen> findByNnCccdAndNvTt(String nnCccd, Integer nvTt);
 
+    Optional<NguyenVongXettuyen> findByNnCccdAndNvMaNganh(String nnCccd, String nvMaNganh);
+
     boolean existsByNnCccdAndNvMaNganh(String nnCccd, String nvMaNganh);
 
     boolean existsByNnCccdAndNvTt(String nnCccd, Integer nvTt);

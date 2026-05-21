@@ -2,6 +2,7 @@ import '@/styles/index.css';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import TraCuuPage from './pages/TraCuuPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -9,6 +10,7 @@ function App() {
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/tracuu" element={<TraCuuPage />} />
                 <Route
                     path="/dashboard"
                     element={
@@ -18,7 +20,7 @@ function App() {
                     }
                 />
                 <Route path="/" element={<Navigate to="/login" replace />} />
-                 <Route path="*" element={<Navigate to="/login" replace />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
         </BrowserRouter>
     );

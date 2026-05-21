@@ -50,6 +50,13 @@ public class ExcelImportService {
         private Double nk2;
     }
 
+     private static class IeltsRow {
+        private String cccd;
+        private String chungChi;
+        private Double diemQuyDoi;
+        private Double diemCong;
+    }
+
     /**
      * Import danh sách thí sinh và điểm thi từ file Excel "Ds thi sinh.xlsx".
      * Dữ liệu sẽ được lưu trong một transaction; nếu có lỗi ở bất kỳ dòng nào thì
@@ -244,7 +251,7 @@ public class ExcelImportService {
                 normalized.substring(lastSpaceIndex + 1).trim()
         };
     }
-
+    
     /**
      * Import danh sách điểm thi từ file Excel
      * Định dạng Excel: [CCCD] [SoBaoDanh] [Toan] [Ly] [Hoa] [Sinh] [SuAn] [DiaLi]

@@ -3,7 +3,6 @@ import { useNguyenVongStore } from '../context/nguyenVongStore';
 
 export default function NguyenVongForm({ nganhList, onSuccess, loading }) {
     const [maNganh, setMaNganh] = useState('');
-    const [thuTuNguyenVong, setThuTuNguyenVong] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const { addNguyenVong, error, clearError } = useNguyenVongStore();
@@ -15,10 +14,11 @@ export default function NguyenVongForm({ nganhList, onSuccess, loading }) {
         setIsSubmitting(true);
 
         try {
-            await addNguyenVong(maNganh, thuTuNguyenVong);
+            // Truyền 0 cho tham số thứ tự vì backend sẽ tự tính toán lại
+            await addNguyenVong(maNganh, 0); 
             setSuccessMessage('Thêm nguyện vọng thành công!');
             setMaNganh('');
-            setThuTuNguyenVong(1);
+            
             setTimeout(() => {
                 setSuccessMessage('');
                 onSuccess();
@@ -33,13 +33,13 @@ export default function NguyenVongForm({ nganhList, onSuccess, loading }) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
                     {error}
                 </div>
             )}
-
+            
             {successMessage && (
-                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
                     {successMessage}
                 </div>
             )}
@@ -53,11 +53,8 @@ export default function NguyenVongForm({ nganhList, onSuccess, loading }) {
                     onChange={(e) => setMaNganh(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                    disabled={loading}
                 >
-                    <option value="">
-                        {loading ? 'Đang tải...' : 'Chọn ngành'}
-                    </option>
+                    <option value="" disabled>-- Chọn ngành --</option>
                     {nganhList &&
                         nganhList.map((nganh) => (
                             <option key={nganh.maNganh} value={nganh.maNganh}>
@@ -67,23 +64,7 @@ export default function NguyenVongForm({ nganhList, onSuccess, loading }) {
                 </select>
             </div>
 
-            <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                    Thứ tự nguyện vọng *
-                </label>
-                <select
-                    value={thuTuNguyenVong}
-                    onChange={(e) => setThuTuNguyenVong(parseInt(e.target.value))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                >
-                    {[1, 2, 3, 4, 5].map((num) => (
-                        <option key={num} value={num}>
-                            Thứ tự {num}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            {/* Đã xóa field chọn Thứ tự nguyện vọng */}
 
             <button
                 type="submit"
