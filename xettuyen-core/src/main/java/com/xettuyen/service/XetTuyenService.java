@@ -2,6 +2,7 @@ package com.xettuyen.service;
 
 import com.xettuyen.dao.*;
 import com.xettuyen.entity.*;
+import com.xettuyen.dao.DAOFactory;
 import java.util.*;
 
 /**
@@ -14,6 +15,8 @@ public class XetTuyenService {
     private BangQuyDoiDAO bangQuyDoiDAO;
     private NguyenVongDAO nguyenVongDAO;
     private NganhToHopDAO nganhToHopDAO;
+    private ThiSinhDAO thiSinhDAO = DAOFactory.getThiSinhDAO();
+    private NganhDAO nganhDAO = DAOFactory.getNganhDAO();
 
     /**
      * Constructor - nhận vào các DAO cần thiết
@@ -275,6 +278,236 @@ public class XetTuyenService {
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi reset điểm: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    public String xetNguyenVongToanBo() {
+        try {
+            List<ThiSinhXettuyen> allThiSinh = thiSinhDAO.findAll(ThiSinhXettuyen.class);
+            if (allThiSinh == null || allThiSinh.isEmpty()) {
+                return "Không có thí sinh nào trong hệ thống.";
+            }
+
+            Map<String, List<NguyenVongXettuyen>> nguyenVongByCccd = new LinkedHashMap<>();
+            List<ThiSinhXettuyen> thiSinhCoNguyenVong = new ArrayList<>();
+            int tongNguyenVong = 0;
+            for (ThiSinhXettuyen thiSinh : allThiSinh) {
+                if (thiSinh == null || isBlank(thiSinh.getCccd())) {
+                    continue;
+                }
+                tinhDiemXetTuyenCuaThiSinh(thiSinh.getCccd());
+                List<NguyenVongXettuyen> nguyenVongList = nguyenVongDAO.findByCCCD(thiSinh.getCccd());
+                if (nguyenVongList == null || nguyenVongList.isEmpty()) {
+                    continue;
+                }
+                thiSinhCoNguyenVong.add(thiSinh);
+                nguyenVongByCccd.put(thiSinh.getCccd(), nguyenVongList);
+                tongNguyenVong += nguyenVongList.size();
+                thiSinh.setTrangThaiTrungTuyen(null);
+                thiSinh.setNganhTrungTuyen(null);
+                thiSinhDAO.update(thiSinh);
+            }
+
+            if (thiSinhCoNguyenVong.isEmpty()) {
+                return "Không có nguyện vọng nào để xét.";
+            }
+
+            List<Nganh> allNganh = nganhDAO.findAll(Nganh.class);
+            Map<String, Nganh> nganhByMa = new LinkedHashMap<>();
+            Map<String, Integer> slotsRemainingByNganh = new LinkedHashMap<>();
+            Map<String, List<Double>> admittedScoresByNganh = new LinkedHashMap<>();
+            Map<String, Double> finalCutoffByNganh = new LinkedHashMap<>();
+            for (Nganh nganh : allNganh) {
+                String maNganh = safeCode(nganh.getMaNganh());
+                if (maNganh.isEmpty()) {
+                    continue;
+                }
+                nganhByMa.put(maNganh, nganh);
+                int chiTieu = nganh.getNChiTieu() != null ? nganh.getNChiTieu() : 0;
+                slotsRemainingByNganh.put(maNganh, Math.max(0, chiTieu));
+                admittedScoresByNganh.put(maNganh, new ArrayList<>());
+                finalCutoffByNganh.put(maNganh, null);
+            }
+
+            List<WishSelection> tatCaXepHang = new ArrayList<>();
+            for (ThiSinhXettuyen thiSinh : thiSinhCoNguyenVong) {
+                List<NguyenVongXettuyen> nguyenVongList = nguyenVongByCccd.get(thiSinh.getCccd());
+                for (NguyenVongXettuyen nguyenVong : nguyenVongList) {
+                    Double diemXetTuyen = nguyenVong.getDiemXettuyen();
+                    if (diemXetTuyen == null) {
+                        continue;
+                    }
+                    String maNganh = safeCode(nguyenVong.getNvMaNganh());
+                    Nganh nganh = nganhByMa.get(maNganh);
+                    if (nganh == null) {
+                        continue;
+                    }
+                    double diemSan = nganh.getNDiemSan() != null ? nganh.getNDiemSan() : 0.0;
+                    if (diemXetTuyen < diemSan) {
+                        continue;
+                    }
+                    tatCaXepHang.add(new WishSelection(thiSinh.getCccd(), nguyenVong, maNganh, diemXetTuyen));
+                }
+            }
+
+            tatCaXepHang.sort((a, b) -> {
+                int cmp = Double.compare(b.score, a.score);
+                if (cmp != 0) {
+                    return cmp;
+                }
+                cmp = Integer.compare(a.wish.getNvTt() != null ? a.wish.getNvTt() : Integer.MAX_VALUE,
+                        b.wish.getNvTt() != null ? b.wish.getNvTt() : Integer.MAX_VALUE);
+                if (cmp != 0) {
+                    return cmp;
+                }
+                return safeCode(a.cccd).compareTo(safeCode(b.cccd));
+            });
+
+            Map<String, WishSelection> selectedByCccd = new LinkedHashMap<>();
+            Map<String, List<WishSelection>> selectedByNganh = new LinkedHashMap<>();
+            for (WishSelection selection : tatCaXepHang) {
+                if (selectedByCccd.containsKey(selection.cccd)) {
+                    continue;
+                }
+                Integer slotRemaining = slotsRemainingByNganh.get(selection.maNganh);
+                if (slotRemaining == null || slotRemaining <= 0) {
+                    continue;
+                }
+                selectedByCccd.put(selection.cccd, selection);
+                admittedScoresByNganh.computeIfAbsent(selection.maNganh, key -> new ArrayList<>()).add(selection.score);
+                selectedByNganh.computeIfAbsent(selection.maNganh, key -> new ArrayList<>()).add(selection);
+                slotsRemainingByNganh.put(selection.maNganh, slotRemaining - 1);
+            }
+
+            int soThiSinhTrungTuyen = 0;
+            int soThiSinhRot = 0;
+            int soNguyenVongCapNhat = 0;
+
+            for (ThiSinhXettuyen thiSinh : thiSinhCoNguyenVong) {
+                List<NguyenVongXettuyen> nguyenVongList = nguyenVongByCccd.get(thiSinh.getCccd());
+                if (nguyenVongList == null || nguyenVongList.isEmpty()) {
+                    thiSinh.setTrangThaiTrungTuyen("Không trúng tuyển");
+                    thiSinh.setNganhTrungTuyen(null);
+                    thiSinhDAO.update(thiSinh);
+                    soThiSinhRot++;
+                    continue;
+                }
+
+                WishSelection selected = selectedByCccd.get(thiSinh.getCccd());
+                for (NguyenVongXettuyen nguyenVong : nguyenVongList) {
+                    boolean isSelected = selected != null && Objects.equals(nguyenVong.getIdNv(), selected.wish.getIdNv());
+                    nguyenVong.setNvKetqua(isSelected ? "Đậu" : "Rớt");
+                    nguyenVongDAO.update(nguyenVong);
+                    soNguyenVongCapNhat++;
+                }
+
+                if (selected != null) {
+                    thiSinh.setTrangThaiTrungTuyen("Đã trúng tuyển");
+                    thiSinh.setNganhTrungTuyen(selected.maNganh);
+                    soThiSinhTrungTuyen++;
+                } else {
+                    thiSinh.setTrangThaiTrungTuyen("Không trúng tuyển");
+                    thiSinh.setNganhTrungTuyen(null);
+                    soThiSinhRot++;
+                }
+                thiSinhDAO.update(thiSinh);
+            }
+
+            for (Map.Entry<String, Nganh> entry : nganhByMa.entrySet()) {
+                String maNganh = entry.getKey();
+                Nganh nganh = entry.getValue();
+                List<Double> scores = admittedScoresByNganh.get(maNganh);
+                Double cutoff = null;
+                if (scores != null && !scores.isEmpty()) {
+                    cutoff = scores.get(0);
+                    for (Double score : scores) {
+                        if (score != null && (cutoff == null || score < cutoff)) {
+                            cutoff = score;
+                        }
+                    }
+                }
+                nganh.setNDiemTrungTuyen(cutoff);
+                nganhDAO.update(nganh);
+                finalCutoffByNganh.put(maNganh, cutoff);
+            }
+
+            StringBuilder summary = new StringBuilder();
+            summary.append("Đậu: ").append(soThiSinhTrungTuyen).append(", rớt: ").append(soThiSinhRot)
+                    .append(", nguyện vọng cập nhật: ").append(soNguyenVongCapNhat).append(", xét: ")
+                    .append(thiSinhCoNguyenVong.size()).append(", NV: ").append(tongNguyenVong).append('.');
+
+            return summary.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi xét nguyện vọng: " + e.getMessage(), e);
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private String safeCode(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private boolean sameCode(String left, String right) {
+        return safeCode(left).equalsIgnoreCase(safeCode(right));
+    }
+
+    private int countDaTrungTuyenTheoNganh(List<ThiSinhXettuyen> thiSinhList, String maNganh) {
+        int count = 0;
+        for (ThiSinhXettuyen thiSinh : thiSinhList) {
+            if (!isAdmittedStatus(thiSinh.getTrangThaiTrungTuyen())) {
+                continue;
+            }
+            if (sameCode(thiSinh.getNganhTrungTuyen(), maNganh)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean isAdmittedStatus(String status) {
+        if (status == null) {
+            return false;
+        }
+        String normalized = status.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalized.contains("không") || normalized.contains("khong") || normalized.contains("rớt")
+            || normalized.contains("rot") || normalized.contains("trượt") || normalized.contains("truot")
+            || normalized.contains("chưa") || normalized.contains("chua") || normalized.contains("dưới sàn")
+            || normalized.contains("duoi san")) {
+            return false;
+        }
+        return normalized.contains("đậu") || normalized.contains("dau") || normalized.contains("trúng tuyển")
+            || normalized.contains("trung tuyen") || normalized.equals("đã trúng tuyển")
+            || normalized.equals("da trung tuyen") || normalized.equals("đậu")
+            || normalized.equals("dau");
+    }
+
+    private boolean isPendingXetTuyenStatus(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return true;
+        }
+        String normalized = status.trim().toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("chưa xét") || normalized.contains("chua xet")
+                || normalized.contains("chờ xét") || normalized.contains("cho xet");
+    }
+
+    private String formatScore(Double score) {
+        return score == null ? "" : String.format(java.util.Locale.ROOT, "%.2f", score);
+    }
+
+    private static class WishSelection {
+        private final String cccd;
+        private final NguyenVongXettuyen wish;
+        private final String maNganh;
+        private final double score;
+
+        private WishSelection(String cccd, NguyenVongXettuyen wish, String maNganh, double score) {
+            this.cccd = cccd;
+            this.wish = wish;
+            this.maNganh = maNganh;
+            this.score = score;
         }
     }
 }

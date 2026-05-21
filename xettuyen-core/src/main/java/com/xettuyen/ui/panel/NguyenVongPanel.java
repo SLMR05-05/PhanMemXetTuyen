@@ -39,6 +39,7 @@ public class NguyenVongPanel extends JPanel {
     private final NganhToHopDAO nganhToHopDAO = DAOFactory.getNganhToHopDAO();
     private final ThiSinhDAO thiSinhDAO = DAOFactory.getThiSinhDAO();
     private JButton btnRecalculate;
+    private JButton btnXetNguyenVong;
 
     // Log storage
     private StringBuilder logBuilder;
@@ -114,13 +115,15 @@ public class NguyenVongPanel extends JPanel {
         btnEdit = new JButton("Sửa ✏️");
         btnDelete = new JButton("Xóa 🗑️");
         btnRecalculate = new JButton("Tính lại điểm 🔄");
-        for (JButton b : new JButton[] { btnAdd, btnEdit, btnDelete, btnRecalculate })
+        btnXetNguyenVong = new JButton("Xét nguyện vọng ✅");
+        for (JButton b : new JButton[] { btnAdd, btnEdit, btnDelete, btnRecalculate, btnXetNguyenVong })
             styleBasicButton(b);
         bottomPanel.add(btnAdd);
         bottomPanel.add(btnEdit);
         bottomPanel.add(btnDelete);
         bottomPanel.add(new JLabel(" | "));
         bottomPanel.add(btnRecalculate);
+        bottomPanel.add(btnXetNguyenVong);
         add(bottomPanel, BorderLayout.SOUTH);
 
         // --- Sự kiện ---
@@ -352,6 +355,41 @@ public class NguyenVongPanel extends JPanel {
                 }
             }.execute();
         });
+
+        btnXetNguyenVong.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Hệ thống sẽ tính toán và cập nhật lại toàn bộ dữ liệu nguyện vọng. Tiếp tục?",
+                    "Xác nhận xét nguyện vọng", JOptionPane.YES_NO_OPTION);
+            if (confirm != JOptionPane.YES_OPTION)
+                return;
+
+            btnXetNguyenVong.setEnabled(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            new SwingWorker<String, Void>() {
+                @Override
+                protected String doInBackground() {
+                    return xetTuyenService.xetNguyenVongToanBo();
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        String message = get();
+                        resetAndLoadAll();
+                        JOptionPane.showMessageDialog(NguyenVongPanel.this, message, "Kết quả xét nguyện vọng",
+                                JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(NguyenVongPanel.this,
+                                "Lỗi khi xét nguyện vọng: " + ex.getMessage(), "Lỗi Hệ Thống",
+                                JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        btnXetNguyenVong.setEnabled(true);
+                        setCursor(Cursor.getDefaultCursor());
+                    }
+                }
+            }.execute();
+        });
         resetAndLoadAll();
     }
 
@@ -541,6 +579,8 @@ public class NguyenVongPanel extends JPanel {
             nv.setDiemUtqd(0.0);
             nv.setDiemCong(0.0);
             nv.setDiemXettuyen(0.0);
+            nv.setTtPhuongThuc(null);
+            nv.setTtThm(null);
             addLog("  ⚠️ CCCD " + cccd + ": Không có dữ liệu điểm thi");
             return;
         }
@@ -552,6 +592,8 @@ public class NguyenVongPanel extends JPanel {
             nv.setDiemUtqd(0.0);
             nv.setDiemCong(0.0);
             nv.setDiemXettuyen(0.0);
+            nv.setTtPhuongThuc(null);
+            nv.setTtThm(null);
             addLog("  ⚠️ CCCD " + cccd + ": Ngành " + maNganh + " không có tổ hợp hợp lệ");
             return;
         }
@@ -606,6 +648,8 @@ public class NguyenVongPanel extends JPanel {
             nv.setDiemUtqd(0.0);
             nv.setDiemCong(0.0);
             nv.setDiemXettuyen(0.0);
+            nv.setTtPhuongThuc(null);
+            nv.setTtThm(null);
         }
     }
 

@@ -46,6 +46,7 @@ com\xettuyen\service\ToHopMonThiService$SearchResult.class
 com\xettuyen\ui\panel\NganhPanel$5.class
 com\xettuyen\service\ExcelImportService$DsThiSinhRow.class
 com\xettuyen\service\ThiSinhService$CandidateDetail.class
+com\xettuyen\ui\panel\NguyenVongPanel$4.class
 com\xettuyen\ui\panel\CandidateManagementPanel$DetailButtonRenderer.class
 com\xettuyen\entity\Nganh.class
 com\xettuyen\ui\MainFrame$9.class
@@ -62,6 +63,7 @@ com\xettuyen\service\ThiSinhService.class
 com\xettuyen\ui\panel\ToHopPanel.class
 com\xettuyen\entity\DiemThiXettuyen.class
 com\xettuyen\service\ToHopMonThiService.class
+com\xettuyen\service\XetTuyenService$WishSelection.class
 com\xettuyen\service\XetTuyenService.class
 com\xettuyen\service\ToHopMonThiService$DeleteResult.class
 com\xettuyen\ui\panel\NguyenVongPanel$2.class
