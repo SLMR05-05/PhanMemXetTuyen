@@ -52,7 +52,8 @@ public class ExcelImportService {
 
     /**
      * Import danh sách thí sinh và điểm thi từ file Excel "Ds thi sinh.xlsx".
-     * Dữ liệu sẽ được lưu trong một transaction; nếu có lỗi ở bất kỳ dòng nào thì rollback toàn bộ.
+     * Dữ liệu sẽ được lưu trong một transaction; nếu có lỗi ở bất kỳ dòng nào thì
+     * rollback toàn bộ.
      *
      * @param filePath đường dẫn file Excel
      * @return số dòng dữ liệu đã import thành công
@@ -122,7 +123,8 @@ public class ExcelImportService {
 
     /**
      * Import danh sách thí sinh từ file Excel
-     * Định dạng Excel: [CCCD] [SoBaoDanh] [Ho] [Ten] [NgaySinh] [DienThoai] [GioiTinh] [Email] [NoiSinh] [DoiTuong] [KhuVuc]
+     * Định dạng Excel: [CCCD] [SoBaoDanh] [Ho] [Ten] [NgaySinh] [DienThoai]
+     * [GioiTinh] [Email] [NoiSinh] [DoiTuong] [KhuVuc]
      *
      * @param filePath Đường dẫn đến file Excel
      * @return Danh sách thí sinh đã import
@@ -131,7 +133,8 @@ public class ExcelImportService {
         List<DsThiSinhRow> rows = readDsThiSinhRows(filePath);
         List<ThiSinhXettuyen> persisted = new ArrayList<>();
 
-        if (rows.isEmpty()) return persisted;
+        if (rows.isEmpty())
+            return persisted;
 
         Session session = null;
         Transaction tx = null;
@@ -156,12 +159,15 @@ public class ExcelImportService {
             }
 
             tx.commit();
-            System.out.println("✅ Import thành công (thông tin thí sinh) : " + persisted.size() + " bản ghi từ " + filePath);
+            System.out.println(
+                    "✅ Import thành công (thông tin thí sinh) : " + persisted.size() + " bản ghi từ " + filePath);
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null)
+                tx.rollback();
             throw new RuntimeException("Lỗi khi import thí sinh: " + e.getMessage(), e);
         } finally {
-            if (session != null) session.close();
+            if (session != null)
+                session.close();
         }
 
         return persisted;
@@ -171,7 +177,7 @@ public class ExcelImportService {
         List<DsThiSinhRow> rows = new ArrayList<>();
 
         try (FileInputStream file = new FileInputStream(filePath);
-             Workbook workbook = new XSSFWorkbook(file)) {
+                Workbook workbook = new XSSFWorkbook(file)) {
 
             Sheet sheet = workbook.getSheetAt(0);
 
@@ -225,23 +231,24 @@ public class ExcelImportService {
     private String[] splitFullName(String fullName) {
         String normalized = fullName == null ? "" : fullName.trim().replaceAll("\\s+", " ");
         if (normalized.isEmpty()) {
-            return new String[] {"", ""};
+            return new String[] { "", "" };
         }
 
         int lastSpaceIndex = normalized.lastIndexOf(' ');
         if (lastSpaceIndex < 0) {
-            return new String[] {"", normalized};
+            return new String[] { "", normalized };
         }
 
         return new String[] {
-            normalized.substring(0, lastSpaceIndex).trim(),
-            normalized.substring(lastSpaceIndex + 1).trim()
+                normalized.substring(0, lastSpaceIndex).trim(),
+                normalized.substring(lastSpaceIndex + 1).trim()
         };
     }
 
     /**
      * Import danh sách điểm thi từ file Excel
-     * Định dạng Excel: [CCCD] [SoBaoDanh] [Toan] [Ly] [Hoa] [Sinh] [SuAn] [DiaLi] [VanAn] [N1-Thi] [CNCN] [CNNN] [TI] [KTPL]
+     * Định dạng Excel: [CCCD] [SoBaoDanh] [Toan] [Ly] [Hoa] [Sinh] [SuAn] [DiaLi]
+     * [VanAn] [N1-Thi] [CNCN] [CNNN] [TI] [KTPL]
      *
      * @param filePath Đường dẫn đến file Excel
      * @return Danh sách điểm thi đã import
@@ -250,7 +257,7 @@ public class ExcelImportService {
         List<com.xettuyen.entity.DiemThiXettuyen> diemThiList = new ArrayList<>();
 
         try (FileInputStream file = new FileInputStream(filePath);
-             Workbook workbook = new XSSFWorkbook(file)) {
+                Workbook workbook = new XSSFWorkbook(file)) {
 
             Sheet sheet = workbook.getSheetAt(0);
             int rowCount = 0;
@@ -270,22 +277,21 @@ public class ExcelImportService {
                     diemThi.setCccd(getCellValueAsString(row, 1));
 
                     // Các môn thi (kiểu numeric - Double)
-                    diemThi.setTo(getCellValueAsDouble(row, 7));      // Toán
-                    diemThi.setVa(getCellValueAsDouble(row, 8));      // Văn
-                    diemThi.setLi(getCellValueAsDouble(row, 9));      // Lý
-                    diemThi.setHo(getCellValueAsDouble(row, 10));      // Hoá
-                    diemThi.setSi(getCellValueAsDouble(row, 11));      // Sinh
-                    diemThi.setSu(getCellValueAsDouble(row, 12));      // Sử
-                    diemThi.setDi(getCellValueAsDouble(row, 13));      // Địa
-
+                    diemThi.setTo(getCellValueAsDouble(row, 7)); // Toán
+                    diemThi.setVa(getCellValueAsDouble(row, 8)); // Văn
+                    diemThi.setLi(getCellValueAsDouble(row, 9)); // Lý
+                    diemThi.setHo(getCellValueAsDouble(row, 10)); // Hoá
+                    diemThi.setSi(getCellValueAsDouble(row, 11)); // Sinh
+                    diemThi.setSu(getCellValueAsDouble(row, 12)); // Sử
+                    diemThi.setDi(getCellValueAsDouble(row, 13)); // Địa
 
                     // Các cột khác
-                    diemThi.setN1Thi(getCellValueAsDouble(row, 15));   // N1-Thi
+                    diemThi.setN1Thi(getCellValueAsDouble(row, 15)); // N1-Thi
                     // diemThi.setLoaiChungChi(getCellValueAsString(row, 16));
-                    diemThi.setCncn(getCellValueAsDouble(row, 19));   // CNCN
-                    diemThi.setCnnn(getCellValueAsDouble(row, 20));   // CNNN
-                    diemThi.setTi(getCellValueAsDouble(row, 18));     // TI
-                    diemThi.setKtpl(getCellValueAsDouble(row, 17));   // KTPL
+                    diemThi.setCncn(getCellValueAsDouble(row, 19)); // CNCN
+                    diemThi.setCnnn(getCellValueAsDouble(row, 20)); // CNNN
+                    diemThi.setTi(getCellValueAsDouble(row, 18)); // TI
+                    diemThi.setKtpl(getCellValueAsDouble(row, 17)); // KTPL
 
                     diemThi.setNk1(getCellValueAsDouble(row, 22));
                     diemThi.setNk2(getCellValueAsDouble(row, 23));
@@ -316,7 +322,7 @@ public class ExcelImportService {
         List<com.xettuyen.entity.DiemCongXettuyen> diemCongList = new ArrayList<>();
 
         try (FileInputStream file = new FileInputStream(filePath);
-             Workbook workbook = new XSSFWorkbook(file)) {
+                Workbook workbook = new XSSFWorkbook(file)) {
 
             Sheet sheet = workbook.getSheetAt(1);
             int rowCount = 0;
@@ -333,8 +339,8 @@ public class ExcelImportService {
                     com.xettuyen.entity.DiemCongXettuyen diemCong = new com.xettuyen.entity.DiemCongXettuyen();
 
                     diemCong.setTsCccd(getCellValueAsString(row, 1));
-                    //diemCong.setMaNganh(getCellValueAsString(row, 6));
-                    //diemCong.setMaTohop(getCellValueAsString(row, 5));
+                    // diemCong.setMaNganh(getCellValueAsString(row, 6));
+                    // diemCong.setMaTohop(getCellValueAsString(row, 5));
                     diemCong.setPhuongThuc(getCellValueAsString(row, 4));
                     diemCong.setDiemCc(getCellValueAsDouble(row, 7));
                     diemCong.setDiemUtxt(getCellValueAsDouble(row, 8));
@@ -342,7 +348,8 @@ public class ExcelImportService {
                     double d2 = (diemCong.getDiemUtxt() != null) ? diemCong.getDiemUtxt() : 0;
                     diemCong.setDiemTong(d1 + d2);
                     diemCong.setGhiChu(getCellValueAsString(row, 2) + " - " + getCellValueAsString(row, 3));
-                    diemCong.setDcKeys(diemCong.getTsCccd() + "_" + diemCong.getMaNganh() + "_" + diemCong.getMaTohop());
+                    diemCong.setDcKeys(
+                            diemCong.getTsCccd() + "_" + diemCong.getMaNganh() + "_" + diemCong.getMaTohop());
 
                     diemCongList.add(diemCong);
                     rowCount++;
@@ -368,7 +375,7 @@ public class ExcelImportService {
 
     /**
      * Import điểm DGNL và VSAT từ cùng file Excel.
-    * Sheet 1: VSAT, Sheet 2: DGNL.
+     * Sheet 1: VSAT, Sheet 2: DGNL.
      * VSAT được gom theo CCCD và map TENMONTHI/MAMONTHI sang đúng cột DB.
      * DGNL được lưu vào NL1.
      */
@@ -376,7 +383,7 @@ public class ExcelImportService {
         Map<String, DiemThiXettuyen> result = new LinkedHashMap<>();
 
         try (FileInputStream file = new FileInputStream(filePath);
-             Workbook workbook = WorkbookFactory.create(file)) {
+                Workbook workbook = WorkbookFactory.create(file)) {
 
             if (workbook.getNumberOfSheets() > 0) {
                 importVsatSheet(workbook.getSheetAt(0), result);
@@ -400,10 +407,12 @@ public class ExcelImportService {
     }
 
     private void importVsatSheet(Sheet sheet, Map<String, DiemThiXettuyen> result) {
-        if (sheet == null || sheet.getPhysicalNumberOfRows() == 0) return;
+        if (sheet == null || sheet.getPhysicalNumberOfRows() == 0)
+            return;
 
         Row header = sheet.getRow(0);
-        if (header == null) return;
+        if (header == null)
+            return;
 
         int cccdIdx = findHeaderIndex(header, "cmnd", "cccd");
         int tenMonIdx = findHeaderIndex(header, "tenmonthi", "ten mon thi", "ten mon");
@@ -415,9 +424,12 @@ public class ExcelImportService {
         int sessionIdx = findHeaderIndex(header, "dot", "lan", "n1_vs", "dot thi", "lan thi");
         int unitIdx = findHeaderIndex(header, "truong", "donvi", "don vi", "co so", "school");
 
-        if (cccdIdx == -1) cccdIdx = 1;
-        if (tenMonIdx == -1 && maMonIdx != -1) tenMonIdx = maMonIdx;
-        if (diemIdx == -1) diemIdx = 8;
+        if (cccdIdx == -1)
+            cccdIdx = 1;
+        if (tenMonIdx == -1 && maMonIdx != -1)
+            tenMonIdx = maMonIdx;
+        if (diemIdx == -1)
+            diemIdx = 8;
 
         // Local holder for scanned rows
         class ScoreRow {
@@ -435,10 +447,12 @@ public class ExcelImportService {
 
         for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
             Row row = sheet.getRow(i);
-            if (row == null || isRowEmpty(row)) continue;
+            if (row == null || isRowEmpty(row))
+                continue;
 
             String cccd = getCellValueAsString(row, cccdIdx);
-            if (cccd.isEmpty()) continue;
+            if (cccd.isEmpty())
+                continue;
 
             String tenMon = tenMonIdx >= 0 ? getCellValueAsString(row, tenMonIdx) : "";
             String maMon = maMonIdx >= 0 ? getCellValueAsString(row, maMonIdx) : "";
@@ -477,7 +491,8 @@ public class ExcelImportService {
             list.add(sr);
         }
 
-        // For each candidate, pick the best session (prefer latest date, otherwise the session with most-recent row)
+        // For each candidate, pick the best session (prefer latest date, otherwise the
+        // session with most-recent row)
         for (Map.Entry<String, Map<String, List<ScoreRow>>> entry : grouped.entrySet()) {
             String cccd = entry.getKey();
             Map<String, List<ScoreRow>> sessions = entry.getValue();
@@ -518,15 +533,15 @@ public class ExcelImportService {
                 }
             }
 
-            if (bestKey == null) continue;
+            if (bestKey == null)
+                continue;
 
             List<ScoreRow> chosen = sessions.get(bestKey);
-            DiemThiXettuyen diemThi = result.computeIfAbsent(cccd, key -> {
-                DiemThiXettuyen item = new DiemThiXettuyen();
-                item.setCccd(key);
-                item.setDPhuongThuc("3");
-                return item;
-            });
+            DiemThiXettuyen diemThi = result.computeIfAbsent(cccd, this::loadOrCreateDiemThiByCccd);
+
+            if (diemThi.getDPhuongThuc() == null || diemThi.getDPhuongThuc().isBlank()) {
+                diemThi.setDPhuongThuc("3");
+            }
 
             // apply scores from chosen session only
             for (ScoreRow r : chosen) {
@@ -536,34 +551,41 @@ public class ExcelImportService {
     }
 
     private void importDgnlSheet(Sheet sheet, Map<String, DiemThiXettuyen> result) {
-        if (sheet == null || sheet.getPhysicalNumberOfRows() == 0) return;
+        if (sheet == null || sheet.getPhysicalNumberOfRows() == 0)
+            return;
 
         Row header = sheet.getRow(0);
-        if (header == null) return;
+        if (header == null)
+            return;
 
         int cccdIdx = findHeaderIndex(header, "cmnd", "cccd");
         int diemIdx = findHeaderIndex(header, "diem");
 
-        if (cccdIdx == -1) cccdIdx = 1;
-        if (diemIdx == -1) diemIdx = 8;
+        if (cccdIdx == -1)
+            cccdIdx = 1;
+        if (diemIdx == -1)
+            diemIdx = 8;
 
-        // Multiple DGNL rows per candidate may exist across sessions; keep the highest DGNL value
+        // Multiple DGNL rows per candidate may exist across sessions; keep the highest
+        // DGNL value
         for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
             Row row = sheet.getRow(i);
-            if (row == null || isRowEmpty(row)) continue;
+            if (row == null || isRowEmpty(row))
+                continue;
 
             String cccd = getCellValueAsString(row, cccdIdx);
-            if (cccd.isEmpty()) continue;
+            if (cccd.isEmpty())
+                continue;
 
             Double diem = getCellValueAsDouble(row, diemIdx);
-            if (diem == null) continue;
+            if (diem == null)
+                continue;
 
-            DiemThiXettuyen diemThi = result.computeIfAbsent(cccd, key -> {
-                DiemThiXettuyen item = new DiemThiXettuyen();
-                item.setCccd(key);
-                item.setDPhuongThuc("0");
-                return item;
-            });
+            DiemThiXettuyen diemThi = result.computeIfAbsent(cccd, this::loadOrCreateDiemThiByCccd);
+
+            if (diemThi.getDPhuongThuc() == null || diemThi.getDPhuongThuc().isBlank()) {
+                diemThi.setDPhuongThuc("2");
+            }
 
             Double current = diemThi.getNl1();
             if (current == null || diem > current) {
@@ -572,11 +594,41 @@ public class ExcelImportService {
         }
     }
 
+    private DiemThiXettuyen loadOrCreateDiemThiByCccd(String cccd) {
+        DiemThiXettuyen existing = findDiemThiByCccd(cccd);
+        if (existing != null) {
+            return existing;
+        }
+
+        DiemThiXettuyen item = new DiemThiXettuyen();
+        item.setCccd(cccd);
+        return item;
+    }
+
+    private DiemThiXettuyen findDiemThiByCccd(String cccd) {
+        Session session = null;
+        try {
+            session = sessionFactory.openSession();
+            List<DiemThiXettuyen> list = session.createQuery(
+                    "FROM DiemThiXettuyen WHERE cccd = :cccd", DiemThiXettuyen.class)
+                    .setParameter("cccd", cccd)
+                    .setMaxResults(1)
+                    .list();
+            return list.isEmpty() ? null : list.get(0);
+        } finally {
+            if (session != null) {
+                session.close();
+            }
+        }
+    }
+
     private void applyScoreToDiemThi(DiemThiXettuyen diemThi, String tenMon, String maMon, Double diem) {
-        if (diemThi == null || diem == null) return;
+        if (diemThi == null || diem == null)
+            return;
 
         String subject = normalizeSubjectName(tenMon, maMon);
-        if (subject.isEmpty()) return;
+        if (subject.isEmpty())
+            return;
 
         if (matchesAny(subject, "toan", "toan hoc", "math")) {
             diemThi.setTo(diem);
@@ -646,7 +698,8 @@ public class ExcelImportService {
     }
 
     private int findHeaderIndex(Row header, String... keywords) {
-        if (header == null) return -1;
+        if (header == null)
+            return -1;
         int first = header.getFirstCellNum();
         int last = header.getLastCellNum();
         for (int i = first; i < last; i++) {
@@ -662,12 +715,14 @@ public class ExcelImportService {
 
     private String normalizeSubjectName(String tenMon, String maMon) {
         String subject = normalizeText(tenMon);
-        if (subject.isEmpty()) subject = normalizeText(maMon);
+        if (subject.isEmpty())
+            subject = normalizeText(maMon);
         return subject;
     }
 
     private String normalizeText(String text) {
-        if (text == null) return "";
+        if (text == null)
+            return "";
         return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD)
                 .replaceAll("\\p{M}+", "")
                 .toLowerCase(Locale.ROOT)
@@ -680,7 +735,8 @@ public class ExcelImportService {
         String normalized = normalizeText(value);
         for (String candidate : candidates) {
             String normalizedCandidate = normalizeText(candidate);
-            if (!normalizedCandidate.isEmpty() && (normalized.equals(normalizedCandidate) || normalized.contains(normalizedCandidate))) {
+            if (!normalizedCandidate.isEmpty()
+                    && (normalized.equals(normalizedCandidate) || normalized.contains(normalizedCandidate))) {
                 return true;
             }
         }
@@ -698,7 +754,7 @@ public class ExcelImportService {
         List<NguyenVongXettuyen> nguyenVongList = new ArrayList<>();
         try (FileInputStream file = new FileInputStream(filePath); Workbook workbook = new XSSFWorkbook(file)) {
             // ✅ Chỉ lấy 2 sheet cần thiết theo tên
-            String[] sheetNames = {"Sheet1", "Sheet2"};
+            String[] sheetNames = { "Sheet1", "Sheet2" };
             for (String sheetName : sheetNames) {
                 Sheet sheet = workbook.getSheet(sheetName);
                 if (sheet == null) {
@@ -709,9 +765,11 @@ public class ExcelImportService {
                 int rowCount = 0;
                 for (int i = 5; i < sheet.getPhysicalNumberOfRows(); i++) {
                     Row row = sheet.getRow(i);
-                    if (row == null || isRowEmpty(row)) continue;
+                    if (row == null || isRowEmpty(row))
+                        continue;
                     String firstCell = getCellValueAsString(row, 0);
-                    if (firstCell.contains("Tổng") || firstCell.contains("Cộng")) break;
+                    if (firstCell.contains("Tổng") || firstCell.contains("Cộng"))
+                        break;
                     try {
                         NguyenVongXettuyen nguyenVong = new NguyenVongXettuyen();
                         String cccd = getCellValueAsString(row, 1);
@@ -719,7 +777,8 @@ public class ExcelImportService {
                         Integer nvTt = getCellValueAsInteger(row, 2);
                         String nvTuyenThang = getCellValueAsString(row, 7);
                         if (cccd.isEmpty() || maNganh.isEmpty() || nvTt == null || nvTt == 0) {
-                            System.err.println("⚠️ [" + sheetName + "] Bỏ qua dòng " + (i + 1) + ": thiếu dữ liệu bắt buộc");
+                            System.err.println(
+                                    "⚠️ [" + sheetName + "] Bỏ qua dòng " + (i + 1) + ": thiếu dữ liệu bắt buộc");
                             continue;
                         }
                         nguyenVong.setNnCccd(cccd);
@@ -731,7 +790,7 @@ public class ExcelImportService {
                         nguyenVong.setDiemXettuyen(null);
                         nguyenVong.setNvKetqua("Chờ xét");
                         nguyenVong.setNvKeys(cccd + "_" + maNganh + "_" + (nvTuyenThang.isEmpty() ? "PT4" : "PT1"));
-                        nguyenVong.setTtPhuongThuc(nvTuyenThang.isEmpty() ? "PT4" : "PT1");
+                        nguyenVong.setTtPhuongThuc(nvTuyenThang.isEmpty() ? null : "PT1");
                         nguyenVong.setTtThm(null);
                         nguyenVongList.add(nguyenVong);
                         rowCount++;
@@ -756,7 +815,8 @@ public class ExcelImportService {
      * Kiểm tra xem row có toàn bộ cell trống hay không
      */
     private boolean isRowEmpty(Row row) {
-        if (row == null) return true;
+        if (row == null)
+            return true;
 
         for (int i = row.getFirstCellNum(); i < row.getLastCellNum(); i++) {
             Cell cell = row.getCell(i);

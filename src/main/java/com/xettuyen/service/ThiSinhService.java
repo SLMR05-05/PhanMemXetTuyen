@@ -3,7 +3,9 @@ package com.xettuyen.service;
 import com.xettuyen.dao.*;
 import com.xettuyen.entity.*;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ThiSinhService - Service Layer (Business Logic)
@@ -104,6 +106,70 @@ public class ThiSinhService {
     }
 
     /**
+     * Lấy dữ liệu dashboard cho HomePanel
+     */
+    public HomeDashboardData getHomeDashboardData() {
+        long totalThiSinh = thiSinhDAO.countAll(ThiSinhXettuyen.class);
+        Map<String, Long> byDoiTuong = thiSinhDAO.countByDoiTuong();
+        Map<String, Long> byKhuVuc = thiSinhDAO.countByKhuVuc();
+        return new HomeDashboardData(totalThiSinh, byDoiTuong, byKhuVuc);
+    }
+
+    /**
+     * Tìm kiếm danh sách thí sinh hiển thị nhanh trên HomePanel
+     */
+    public List<ThiSinhXettuyen> searchThiSinhForHome(String keyword, int limit) {
+        String safeKeyword = keyword == null ? "" : keyword.trim();
+        return thiSinhDAO.searchForHome(safeKeyword, limit);
+    }
+
+    /**
+     * Lấy chi tiết 01 thí sinh kèm điểm theo phương thức
+     */
+    public CandidateDetail getCandidateDetail(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return null;
+        }
+
+        String normalized = keyword.trim();
+        ThiSinhXettuyen thiSinh = thiSinhDAO.findByCCCD(normalized);
+        if (thiSinh == null) {
+            thiSinh = thiSinhDAO.findBySoBaoDanh(normalized);
+        }
+        if (thiSinh == null) {
+            List<ThiSinhXettuyen> quickMatches = thiSinhDAO.searchForHome(normalized, 1);
+            if (!quickMatches.isEmpty()) {
+                thiSinh = quickMatches.get(0);
+            }
+        }
+        if (thiSinh == null) {
+            return null;
+        }
+
+        List<DiemThiXettuyen> allScores = diemThiDAO.findByCCCD(thiSinh.getCccd());
+        Map<String, List<DiemThiXettuyen>> groupedScores = new LinkedHashMap<>();
+        groupedScores.put("THPT", new java.util.ArrayList<>());
+        groupedScores.put("DGNL", new java.util.ArrayList<>());
+        groupedScores.put("VSAT", new java.util.ArrayList<>());
+
+        for (DiemThiXettuyen score : allScores) {
+            String method = score.getDPhuongThuc();
+            if ("4".equals(method)) {
+                groupedScores.get("THPT").add(score);
+            } else if ("2".equals(method)) {
+                groupedScores.get("DGNL").add(score);
+            } else if ("3".equals(method)) {
+                groupedScores.get("VSAT").add(score);
+            }
+        }
+
+        return new CandidateDetail(thiSinh,
+                groupedScores.get("THPT"),
+                groupedScores.get("DGNL"),
+                groupedScores.get("VSAT"));
+    }
+
+    /**
      * Inner class - Lưu thông tin toàn bộ thí sinh
      */
     public static class ThiSinhInfo {
@@ -113,7 +179,7 @@ public class ThiSinhService {
         public List<NguyenVongXettuyen> nguyenVongs;
 
         public ThiSinhInfo(ThiSinhXettuyen thiSinh, List<DiemThiXettuyen> diemThi,
-                           List<DiemCongXettuyen> diemCong, List<NguyenVongXettuyen> nguyenVongs) {
+                List<DiemCongXettuyen> diemCong, List<NguyenVongXettuyen> nguyenVongs) {
             this.thiSinh = thiSinh;
             this.diemThi = diemThi;
             this.diemCong = diemCong;
@@ -137,6 +203,35 @@ public class ThiSinhService {
             this.pageSize = pageSize;
             this.totalRecords = totalRecords;
             this.totalPages = totalPages;
+        }
+    }
+
+    public static class HomeDashboardData {
+        public long totalThiSinh;
+        public Map<String, Long> byDoiTuong;
+        public Map<String, Long> byKhuVuc;
+
+        public HomeDashboardData(long totalThiSinh, Map<String, Long> byDoiTuong, Map<String, Long> byKhuVuc) {
+            this.totalThiSinh = totalThiSinh;
+            this.byDoiTuong = byDoiTuong;
+            this.byKhuVuc = byKhuVuc;
+        }
+    }
+
+    public static class CandidateDetail {
+        public ThiSinhXettuyen thiSinh;
+        public List<DiemThiXettuyen> thptScores;
+        public List<DiemThiXettuyen> dgnlScores;
+        public List<DiemThiXettuyen> vsatScores;
+
+        public CandidateDetail(ThiSinhXettuyen thiSinh,
+                List<DiemThiXettuyen> thptScores,
+                List<DiemThiXettuyen> dgnlScores,
+                List<DiemThiXettuyen> vsatScores) {
+            this.thiSinh = thiSinh;
+            this.thptScores = thptScores;
+            this.dgnlScores = dgnlScores;
+            this.vsatScores = vsatScores;
         }
     }
 }

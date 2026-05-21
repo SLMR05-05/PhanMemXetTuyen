@@ -63,7 +63,7 @@ public class DiemThiSubPanel extends JPanel {
         txtSearch = new JTextField(8);
         txtSearch.setPreferredSize(new Dimension(100, 35));
 
-        cbLoaiDiem = new JComboBox<>(new String[] { "Tất cả điểm", "THPT (PT4)", "ĐGNL (PT0)", "VSAT (PT3)" });
+        cbLoaiDiem = new JComboBox<>(new String[] { "Tất cả điểm", "THPT (PT4)", "ĐGNL (PT2)", "VSAT (PT3)" });
         cbLoaiDiem.setPreferredSize(new Dimension(120, 35));
         cbLoaiDiem.addActionListener(e -> loadData());
 
@@ -188,7 +188,7 @@ public class DiemThiSubPanel extends JPanel {
         for (DiemThiXettuyen d : listDiemThi) {
             boolean match = filter.equals("Tất cả điểm")
                     || (filter.contains("THPT") && "4".equals(d.getDPhuongThuc()))
-                    || (filter.contains("ĐGNL") && "0".equals(d.getDPhuongThuc()))
+                    || (filter.contains("ĐGNL") && "2".equals(d.getDPhuongThuc()))
                     || (filter.contains("VSAT") && "3".equals(d.getDPhuongThuc()));
 
             if (match) {
