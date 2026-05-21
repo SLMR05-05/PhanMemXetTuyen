@@ -5,7 +5,10 @@ export default function NguyenVongList({ nguyenVongs, nganhList }) {
     const [deletingId, setDeletingId] = useState(null);
     const { removeNguyenVong } = useNguyenVongStore();
 
-    const getNganhName = (maNganh) => {
+    const getNganhName = (maNganh, tenNganh) => {
+        if (tenNganh) {
+            return tenNganh;
+        }
         const nganh = nganhList?.find((n) => n.maNganh === maNganh);
         return nganh ? nganh.tenNganh : maNganh;
     };
@@ -42,7 +45,7 @@ export default function NguyenVongList({ nguyenVongs, nganhList }) {
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <div>
-                                    <p className="font-medium">{getNganhName(nv.nvMaNganh)}</p>
+                                    <p className="font-medium">{getNganhName(nv.nvMaNganh, nv.tenNganh)}</p>
                                     <p className="text-sm text-gray-500">{nv.nvMaNganh}</p>
                                 </div>
                             </td>

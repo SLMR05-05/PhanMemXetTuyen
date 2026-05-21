@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -26,6 +27,11 @@ public class NguyenVongController {
     @GetMapping
     public List<NguyenVongDTO> getMyNguyenVong(Authentication authentication) {
         return nguyenVongService.getCurrentStudentNguyenVong(authentication);
+    }
+
+    @GetMapping("/lookup")
+    public List<NguyenVongDTO> getNguyenVongByCccd(@RequestParam String cccd) {
+        return nguyenVongService.getNguyenVongByCccd(cccd);
     }
 
     @PostMapping

@@ -5,12 +5,12 @@
   <groupId>com.xettuyen</groupId>
   <artifactId>xettuyen2026</artifactId>
   <version>1.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
-  <!-- <packaging>pom</packaging>
+    <!-- <packaging>jar</packaging> -->
+   <packaging>pom</packaging>
   <modules>
     <module>xettuyen-core</module>
     <module>xettuyen-api</module>
-  </modules> -->
+  </modules> 
   <name>Xét Tuyển 2026</name>
   <description>Hệ thống xét tuyển sinh 2026 - Java Swing + Hibernate + MySQL</description>
 
@@ -254,15 +254,16 @@
   <build>
     <plugins>
       <!-- Maven Compiler Plugin -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
-        <configuration>
-          <source>11</source>
-          <target>11</target>
-        </configuration>
-      </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                    <parameters>true</parameters>
+                </configuration>
+            </plugin>
     </plugins>
   </build>
 </project>

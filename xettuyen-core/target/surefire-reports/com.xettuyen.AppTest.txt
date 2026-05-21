@@ -1,8 +1,8 @@
 -------------------------------------------------------------------------------
 Test set: com.xettuyen.AppTest
 -------------------------------------------------------------------------------
-Tests run: 4, Failures: 0, Errors: 3, Skipped: 0, Time elapsed: 63.25 s <<< FAILURE! -- in com.xettuyen.AppTest
-com.xettuyen.AppTest.testLoginWithWrongPassword -- Time elapsed: 63.21 s <<< ERROR!
+Tests run: 4, Failures: 0, Errors: 3, Skipped: 0, Time elapsed: 0.105 s <<< FAILURE! -- in com.xettuyen.AppTest
+com.xettuyen.AppTest.testLoginWithWrongPassword -- Time elapsed: 0.074 s <<< ERROR!
 java.lang.ExceptionInInitializerError
 	at com.xettuyen.AppTest.testLoginWithWrongPassword(AppTest.java:96)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
@@ -24,8 +24,8 @@ java.lang.ExceptionInInitializerError
 	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
 	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
 	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
-Caused by: java.lang.RuntimeException: Không thể khởi tạo Hibernate: org.hibernate.exception.JDBCConnectionException: Unable to open JDBC Connection for DDL execution [Connections could not be acquired from the underlying database!] [n/a]
-	at com.xettuyen.util.HibernateUtil.<clinit>(HibernateUtil.java:27)
+Caused by: java.lang.RuntimeException: Không thể khởi tạo Hibernate: io.github.cdimascio.dotenv.DotEnvException: Could not find /.env on the classpath
+	at com.xettuyen.util.HibernateUtil.<clinit>(HibernateUtil.java:34)
 	... 20 more
 
 com.xettuyen.AppTest.testLoginWithCorrectCredentials -- Time elapsed: 0.001 s <<< ERROR!
@@ -50,8 +50,8 @@ java.lang.NoClassDefFoundError: Could not initialize class com.xettuyen.util.Hib
 	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
 	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
 	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
-Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.RuntimeException: Không thể khởi tạo Hibernate: org.hibernate.exception.JDBCConnectionException: Unable to open JDBC Connection for DDL execution [Connections could not be acquired from the underlying database!] [n/a] [in thread "main"]
-	at com.xettuyen.util.HibernateUtil.<clinit>(HibernateUtil.java:27)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.RuntimeException: Không thể khởi tạo Hibernate: io.github.cdimascio.dotenv.DotEnvException: Could not find /.env on the classpath [in thread "main"]
+	at com.xettuyen.util.HibernateUtil.<clinit>(HibernateUtil.java:34)
 	at com.xettuyen.AppTest.testLoginWithWrongPassword(AppTest.java:96)
 	... 19 more
 
@@ -78,8 +78,8 @@ java.lang.NoClassDefFoundError: Could not initialize class com.xettuyen.util.Hib
 	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
 	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
 	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
-Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.RuntimeException: Không thể khởi tạo Hibernate: org.hibernate.exception.JDBCConnectionException: Unable to open JDBC Connection for DDL execution [Connections could not be acquired from the underlying database!] [n/a] [in thread "main"]
-	at com.xettuyen.util.HibernateUtil.<clinit>(HibernateUtil.java:27)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.RuntimeException: Không thể khởi tạo Hibernate: io.github.cdimascio.dotenv.DotEnvException: Could not find /.env on the classpath [in thread "main"]
+	at com.xettuyen.util.HibernateUtil.<clinit>(HibernateUtil.java:34)
 	at com.xettuyen.AppTest.testLoginWithWrongPassword(AppTest.java:96)
 	... 19 more
 

@@ -39,6 +39,20 @@ public class NguyenVongService {
                 .toList();
     }
 
+    public List<NguyenVongDTO> getNguyenVongByCccd(String cccd) {
+        if (cccd == null || cccd.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CCCD is required");
+        }
+
+        thiSinhRepository.findByCccd(cccd)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Thi sinh not found"));
+
+        return nguyenVongRepository.findByNnCccdOrderByNvTtAsc(cccd)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
     @Transactional
     public NguyenVongDTO createNguyenVong(Authentication authentication, NguyenVongRequestDTO requestDTO) {
         String cccd = getCurrentCccd(authentication);
@@ -90,6 +104,17 @@ public class NguyenVongService {
 
     private NguyenVongDTO toDto(NguyenVongXettuyen entity, Nganh nganh) {
         String tenNganh = nganh == null ? null : nganh.getTenNganh();
-        return new NguyenVongDTO(entity.getNvMaNganh(), tenNganh, entity.getNvTt());
+        return new NguyenVongDTO(
+                entity.getIdNv(),
+                entity.getNvMaNganh(),
+                tenNganh,
+                entity.getNvTt(),
+                entity.getDiemThxt(),
+                entity.getDiemUtqd(),
+                entity.getDiemCong(),
+                entity.getDiemXettuyen(),
+                entity.getNvKetqua(),
+                entity.getTtPhuongThuc(),
+                entity.getTtThm());
     }
 }

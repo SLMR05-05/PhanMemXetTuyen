@@ -11,6 +11,18 @@ export const nguyenVongService = {
         }
     },
 
+    // Tra cứu nguyện vọng theo CCCD
+    lookupNguyenVongByCccd: async (cccd) => {
+        try {
+            const response = await axiosInstance.get('/nguyenvong/lookup', {
+                params: { cccd },
+            });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || 'Failed to lookup nguyện vọng';
+        }
+    },
+
     // Tạo nguyện vọng mới
     createNguyenVong: async (maNganh, thuTuNguyenVong, ttPhuongThuc = null, ttThm = null) => {
         try {

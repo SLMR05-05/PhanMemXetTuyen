@@ -107,11 +107,11 @@ export default function LoginPage() {
                             </button>
                         </div>
 
-                        <div className="pt-1 text-right">
+                        {/* <div className="pt-1 text-right">
                             <button type="button" className="border-0 bg-transparent p-0 text-[14px] text-[#0077b8] transition hover:text-[#005a8c] focus:outline-none">
                                 Quên Mật Khẩu
                             </button>
-                        </div>
+                        </div> */}
 
                         <button
                             type="submit"

@@ -1,112 +1,116 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '../context/authStore';
 import { useNguyenVongStore } from '../context/nguyenVongStore';
 import { useNganhStore } from '../context/nganhStore';
-import NguyenVongForm from '../components/NguyenVongForm';
-import NguyenVongList from '../components/NguyenVongList';
-import Header from '../components/Header';
+import DashboardLayout from '../components/DashboardLayout';
+import OverviewPanel from './dashboard/panels/OverviewPanel';
+import AdmissionPanel from './dashboard/panels/AdmissionPanel';
+import SearchPanel from './dashboard/panels/SearchPanel';
+import { dashboardPanelLabels } from '../components/dashboard/dashboardNavigation';
 
 export default function DashboardPage() {
     const { logout } = useAuthStore();
     const { nguyenVongs, fetchNguyenVongs, loading: nv_loading } = useNguyenVongStore();
     const { nganhList, fetchAllNganh, loading: nganh_loading } = useNganhStore();
-    const [showForm, setShowForm] = useState(false);
-    const [activeTab, setActiveTab] = useState('list');
+    const [activePanel, setActivePanel] = useState('overview');
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState({ search: true });
 
     useEffect(() => {
         fetchNguyenVongs();
         fetchAllNganh();
-    }, []);
+    }, [fetchAllNganh, fetchNguyenVongs]);
+
+    const stats = useMemo(
+        () => [
+            {
+                label: 'Tổng nguyện vọng',
+                value: nguyenVongs ? nguyenVongs.length : 0,
+                tone: 'text-blue-600',
+                note: 'Dữ liệu đang theo dõi',
+            },
+            {
+                label: 'Tổng ngành có sẵn',
+                value: nganhList ? nganhList.length : 0,
+                tone: 'text-emerald-600',
+                note: 'Danh mục ngành tuyển sinh',
+            },
+            {
+                label: 'Nguyện vọng có điểm',
+                value: nguyenVongs ? nguyenVongs.filter((nv) => nv.diemXettuyen).length : 0,
+                tone: 'text-amber-600',
+                note: 'Đã có dữ liệu xét tuyển',
+            },
+        ],
+        [nganhList, nguyenVongs],
+    );
+
+    const handleSelectPanel = (panelKey) => {
+        setActivePanel(panelKey);
+        if (panelKey.startsWith('search-')) {
+            setExpandedGroups((current) => ({ ...current, search: true }));
+        }
+    };
+
+    const handleToggleGroup = (groupKey) => {
+        setExpandedGroups((current) => ({
+            ...current,
+            [groupKey]: !current[groupKey],
+        }));
+    };
+
+    const renderPanel = () => {
+        switch (activePanel) {
+            case 'overview':
+                return <OverviewPanel stats={stats} />;
+            case 'admission':
+                return (
+                    <AdmissionPanel
+                        nguyenVongs={nguyenVongs}
+                        nganhList={nganhList}
+                        listLoading={nv_loading}
+                        formLoading={nganh_loading}
+                        onRefresh={fetchNguyenVongs}
+                    />
+                );
+            case 'search-exam':
+                return (
+                    <SearchPanel
+                        title={dashboardPanelLabels['search-exam']}
+                        description="Khu vực tra cứu điểm thi theo số báo danh, phục vụ tách biệt với các chức năng khác trong dashboard."
+                    />
+                );
+            case 'search-direct':
+                return (
+                    <SearchPanel
+                        title={dashboardPanelLabels['search-direct']}
+                        description="Khu vực tra cứu tuyển thẳng được tách riêng để dễ mở rộng thành form hoặc dữ liệu thật sau này."
+                    />
+                );
+            case 'search-english':
+                return (
+                    <SearchPanel
+                        title={dashboardPanelLabels['search-english']}
+                        description="Khu vực tra cứu điểm quy đổi Tiếng Anh được tách riêng thành panel độc lập trong area main."
+                    />
+                );
+            default:
+                return <OverviewPanel stats={stats} />;
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <Header onLogout={logout} />
-
-            <div className="max-w-4xl mx-auto py-8 px-4">
-                <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                        Quản lý nguyện vọng xét tuyển
-                    </h2>
-
-                    <div className="flex gap-4 mb-6">
-                        <button
-                            onClick={() => setActiveTab('list')}
-                            className={`px-6 py-2 rounded-lg font-medium transition ${activeTab === 'list'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                        >
-                            Danh sách nguyện vọng
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('add')}
-                            className={`px-6 py-2 rounded-lg font-medium transition ${activeTab === 'add'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                        >
-                            Thêm nguyện vọng
-                        </button>
-                    </div>
-
-                    {/* Tab: Danh sách */}
-                    {activeTab === 'list' && (
-                        <div>
-                            {nv_loading ? (
-                                <div className="text-center py-8">
-                                    <p className="text-gray-600">Đang tải...</p>
-                                </div>
-                            ) : nguyenVongs && nguyenVongs.length > 0 ? (
-                                <NguyenVongList nguyenVongs={nguyenVongs} nganhList={nganhList} />
-                            ) : (
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                                    <p className="text-gray-700">Bạn chưa có nguyện vọng nào.</p>
-                                    <button
-                                        onClick={() => setActiveTab('add')}
-                                        className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
-                                    >
-                                        Tạo nguyện vọng ngay
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Tab: Thêm nguyện vọng */}
-                    {activeTab === 'add' && (
-                        <NguyenVongForm
-                            nganhList={nganhList}
-                            onSuccess={() => {
-                                setActiveTab('list');
-                                fetchNguyenVongs();
-                            }}
-                            loading={nganh_loading}
-                        />
-                    )}
-                </div>
-
-                {/* Thống kê */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg shadow p-6 text-center">
-                        <div className="text-3xl font-bold text-blue-600">
-                            {nguyenVongs ? nguyenVongs.length : 0}
-                        </div>
-                        <p className="text-gray-600 mt-2">Tổng nguyện vọng</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-6 text-center">
-                        <div className="text-3xl font-bold text-green-600">
-                            {nganhList ? nganhList.length : 0}
-                        </div>
-                        <p className="text-gray-600 mt-2">Tổng ngành có sẵn</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-6 text-center">
-                        <div className="text-3xl font-bold text-orange-600">
-                            {nguyenVongs && nguyenVongs.filter(nv => nv.diemXettuyen).length}
-                        </div>
-                        <p className="text-gray-600 mt-2">Nguyện vọng có điểm</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <DashboardLayout
+            onLogout={logout}
+            userName="Cao Tuệ Anh"
+            sidebarCollapsed={sidebarCollapsed}
+            onToggleSidebar={() => setSidebarCollapsed((value) => !value)}
+            activePanel={activePanel}
+            expandedGroups={expandedGroups}
+            onToggleGroup={handleToggleGroup}
+            onSelectPanel={handleSelectPanel}
+        >
+            {renderPanel()}
+        </DashboardLayout>
     );
 }
