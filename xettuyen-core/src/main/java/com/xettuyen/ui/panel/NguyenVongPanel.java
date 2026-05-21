@@ -600,8 +600,8 @@ public class NguyenVongPanel extends JPanel {
 
         // Giai đoạn 2: Tính điểm cho từng phương thức
         ScoreResult thptScore = calculateTHPTScore(allDiemThi, validToHops);
-        ScoreResult vsatScore = calculateVSATScore(allDiemThi, validToHops);
-        ScoreResult dgnlScore = calculateDGNLScore(allDiemThi);
+        ScoreResult vsatScore = new ScoreResult(0, "3", "A01");
+        ScoreResult dgnlScore = calculateDGNLScore(allDiemThi, validToHops);
 
         System.out.println("  [STAGE 2] THPT=" + thptScore.getDiemThxt() + " | VSAT=" + vsatScore.getDiemThxt()
                 + " | DGNL=" + dgnlScore.getDiemThxt());
@@ -680,15 +680,20 @@ public class NguyenVongPanel extends JPanel {
         for (NganhTohop toHop : validToHops) {
             // Lấy 3 môn
             double d1 = getDiemByMaMon(thptData, toHop.getThMon1());
+            Integer hs1 = toHop.getHsMon1() != null ? toHop.getHsMon1() : 1;
             double d2 = getDiemByMaMon(thptData, toHop.getThMon2());
+            Integer hs2 = toHop.getHsMon2() != null ? toHop.getHsMon1() : 1;
             double d3 = getDiemByMaMon(thptData, toHop.getThMon3());
+            Integer hs3 = toHop.getHsMon3() != null ? toHop.getHsMon1() : 1;
 
             // Cộng lại
-            double tongMon = d1 + d2 + d3;
+            double tong = (d1 * hs1) + (d2 * hs2) + (d3 * hs3);
+            double tongHeSo = hs1 + hs2 + hs3;
+            double diemTrungBinh = (tong / tongHeSo) * 3;
 
             // Áp dụng độ lệch
             double doLech = (toHop.getDoLech() != null) ? toHop.getDoLech() : 0.0;
-            double diemThxt = tongMon - doLech;
+            double diemThxt = diemTrungBinh - doLech;
             diemThxt = Math.round(diemThxt * 100.0) / 100.0;
 
             if (diemThxt > maxScore) {
@@ -760,10 +765,10 @@ public class NguyenVongPanel extends JPanel {
      * Bước 2: Tìm khoảng a, b, c, d từ BangQuydoi (d_phuongthuc = 'DGNL')
      * Bước 3: Quy đổi từ thang 1200 về thang 30
      */
-    private ScoreResult calculateDGNLScore(List<DiemThiXettuyen> allDiemThi) {
+    private ScoreResult calculateDGNLScore(List<DiemThiXettuyen> allDiemThi , List<NganhTohop> validToHops) {
         DiemThiXettuyen dgnlData = null;
         for (DiemThiXettuyen dt : allDiemThi) {
-            if ("2".equals(dt.getDPhuongThuc())) {
+            if ("4".equals(dt.getDPhuongThuc())) {
                 dgnlData = dt;
                 break;
             }
@@ -776,28 +781,39 @@ public class NguyenVongPanel extends JPanel {
 
         double nl1 = dgnlData.getNl1();
         System.out.println("    → DGNL: NL1=" + nl1);
+        double maxScore = 0.0;
+        String bestToHop = "";
 
-        // Tìm khoảng quy đổi cho ĐGNL
-        BangQuydoi quyDoiRange = bangQuyDoiDAO.findRangeForDGNL("", nl1); // "" vì DGNL không xét tổ hợp
+        for (NganhTohop toHop : validToHops) {
+            // Tìm khoảng quy đổi cho ĐGNL
+            BangQuydoi quyDoiRange = bangQuyDoiDAO.findRangeForDGNL(toHop.getMaTohop(), nl1); 
 
-        if (quyDoiRange == null) {
-            System.out.println("    → DGNL: Không tìm thấy khoảng quy đổi cho NL1=" + nl1 + " → return 0");
-            return new ScoreResult(0.0, "2", "");
+            if (quyDoiRange == null) {
+                System.out.println("    → DGNL: Không tìm thấy khoảng quy đổi cho NL1=" + nl1 + " → return 0" + toHop.getMaTohop());
+                continue;
+            }
+
+            // Áp dụng công thức nội suy tuyến tính
+            double a = quyDoiRange.getDDiemA();
+            double b = quyDoiRange.getDDiemB();
+            double c = quyDoiRange.getDDiemC();
+            double d = quyDoiRange.getDDiemD();
+
+            System.out.println("    → DGNL: Khoảng quy đổi: [a=" + a + ", b=" + b + ", c=" + c + ", d=" + d + "]");
+
+            double diemThxt = c + ((nl1 - a) / (b - a)) * (d - c) - toHop.getDoLech();
+            diemThxt = Math.round(diemThxt * 100.0) / 100.0;
+
+            
+            if (diemThxt > maxScore) {
+                maxScore = diemThxt;
+                bestToHop = toHop.getMaTohop();
+            }
+            
+             System.out.println("    → DGNL: maxScore=" + maxScore + " bestToHop: " + bestToHop);
         }
-
-        // Áp dụng công thức nội suy tuyến tính
-        double a = quyDoiRange.getDDiemA();
-        double b = quyDoiRange.getDDiemB();
-        double c = quyDoiRange.getDDiemC();
-        double d = quyDoiRange.getDDiemD();
-
-        System.out.println("    → DGNL: Khoảng quy đổi: [a=" + a + ", b=" + b + ", c=" + c + ", d=" + d + "]");
-
-        double diemThxt = c + ((nl1 - a) / (b - a)) * (d - c);
-        diemThxt = Math.round(diemThxt * 100.0) / 100.0;
-
-        System.out.println("    → DGNL: maxScore=" + diemThxt);
-        return new ScoreResult(diemThxt, "2", ""); // 2 = DGNL, không có tổ hợp
+        System.out.println("    → DGNL: maxScore=" + maxScore);
+        return new ScoreResult(maxScore, "2", bestToHop); 
     }
 
     /**

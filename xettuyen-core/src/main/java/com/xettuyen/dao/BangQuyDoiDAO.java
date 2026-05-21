@@ -15,12 +15,16 @@ public class BangQuyDoiDAO extends BaseDAO<BangQuydoi> {
         super(sessionFactory);
     }
 
-    public BangQuydoi findRangeForDGNL(String maToHop, double x) {
+   public BangQuydoi findRangeForDGNL(String maToHop, double x) {
         try (Session session = sessionFactory.openSession()) {
-            String hql = "FROM BangQuydoi b WHERE b.dPhuongThuc = 'DGNL' " + "AND b.dTohop = :maToHop "
-                    + "AND :x > b.dDiemA AND :x <= b.dDiemB";
-            return session.createQuery(hql, BangQuydoi.class).setParameter("maToHop", maToHop)
-                    .setParameter("x", BigDecimal.valueOf(x)).uniqueResult();
+            String hql = "FROM BangQuydoi b WHERE b.dPhuongThuc = 'DGNL' " 
+                       + "AND b.dTohop = :maToHop "
+                       + "AND :x >= b.dDiemA AND :x <= b.dDiemB";
+            
+            return session.createQuery(hql, BangQuydoi.class)
+                    .setParameter("maToHop", maToHop)
+                    .setParameter("x", x) 
+                    .uniqueResult();
         } catch (Exception e) {
             e.printStackTrace();
             return null;

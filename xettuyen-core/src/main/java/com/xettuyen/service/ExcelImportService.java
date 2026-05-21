@@ -1,6 +1,8 @@
 package com.xettuyen.service;
 
+import com.xettuyen.entity.DiemCongXettuyen;
 import com.xettuyen.entity.DiemThiXettuyen;
+import com.xettuyen.entity.NganhTohop;
 import com.xettuyen.entity.ThiSinhXettuyen;
 import com.xettuyen.util.HibernateUtil;
 import com.xettuyen.entity.NguyenVongXettuyen;
@@ -128,6 +130,145 @@ public class ExcelImportService {
         }
     }
 
+    
+
+    public int importIelts(String filePath) {
+        Map<String, IeltsRow> bestByCccd = new LinkedHashMap<>();
+        Map<String, Double> bestScoreByCccd = new HashMap<>();
+
+        try (FileInputStream file = new FileInputStream(filePath);
+             Workbook workbook = new XSSFWorkbook(file)) {
+
+            if (workbook.getNumberOfSheets() == 0) {
+                return 0;
+            }
+
+            Sheet sheet = workbook.getSheetAt(0);
+            Row header = sheet.getRow(0);
+            if (header == null) {
+                return 0;
+            }
+
+            int cccdIdx = findHeaderIndex(header, "cccd", "cmnd");
+            int chungChiIdx = findHeaderIndex(header, "chung chi ngoai ngu", "chung chi", "ngoai ngu");
+            int diemRawIdx = findHeaderIndex(header, "diem/");
+            int diemQuyDoiIdx = findHeaderIndex(header, "diem quy", "diem quy doi");
+            int diemCongIdx = findHeaderIndex(header, "diem cong");
+
+            // Fallback theo layout ảnh: TT, CCCD, Chứng chỉ ngoại ngữ, Điểm/, Điểm Quy, Điểm cộng
+            if (cccdIdx == -1) cccdIdx = 1;
+            if (chungChiIdx == -1) chungChiIdx = 2;
+            if (diemRawIdx == -1) diemRawIdx = 3;
+            if (diemQuyDoiIdx == -1) diemQuyDoiIdx = 4;
+            if (diemCongIdx == -1) diemCongIdx = 5;
+
+            if (cccdIdx < 0 || chungChiIdx < 0 || diemQuyDoiIdx < 0 || diemCongIdx < 0) {
+                throw new IllegalArgumentException(
+                        "Không xác định được cột trong file IELTS. Vui lòng kiểm tra tiêu đề: TT, CCCD, Chứng chỉ ngoại ngữ, Điểm/, Điểm Quy, Điểm cộng");
+            }
+
+            for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null || isRowEmpty(row)) {
+                    continue;
+                }
+
+                String cccd = getCellValueAsString(row, cccdIdx);
+                if (cccd.isEmpty()) {
+                    continue;
+                }
+
+                Double diemQuyDoi = getCellValueAsDouble(row, diemQuyDoiIdx);
+                Double diemCong = getCellValueAsDouble(row, diemCongIdx);
+                String chungChi = getCellValueAsString(row, chungChiIdx);
+
+                double fileRowScore = valueOrZero(diemQuyDoi);
+                Double prevBest = bestScoreByCccd.get(cccd);
+                if (prevBest == null || fileRowScore > prevBest) {
+                    IeltsRow item = new IeltsRow();
+                    item.cccd = cccd;
+                    item.chungChi = chungChi;
+                    item.diemQuyDoi = diemQuyDoi;
+                    item.diemCong = diemCong;
+                    bestByCccd.put(cccd, item);
+                    bestScoreByCccd.put(cccd, fileRowScore);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi đọc file IELTS: " + e.getMessage(), e);
+        }
+
+        if (bestByCccd.isEmpty()) {
+            return 0;
+        }
+
+        Session session = null;
+        Transaction transaction = null;
+        int updatedCount = 0;
+
+        try {
+            session = sessionFactory.openSession();
+            transaction = session.beginTransaction();
+
+            List<NganhTohop> listNganhN1 = session.createQuery(
+            "FROM NganhTohop WHERE n1 IS NULL", NganhTohop.class)
+            .getResultList();
+            int count = 0;
+            for (IeltsRow row : bestByCccd.values()) {
+                List<DiemThiXettuyen> existingList = session.createQuery(
+                                "from DiemThiXettuyen where cccd = :cccd", DiemThiXettuyen.class)
+                        .setParameter("cccd", row.cccd)
+                        .getResultList();
+
+                if (existingList.isEmpty()) {
+                    continue;
+                }
+                
+                double valueA = valueOrZero(row.diemQuyDoi);
+
+                // valueB: N1_THI from records with d_phuongthuc = 4 (THPT)
+                double valueB = existingList.stream()
+                    .filter(e -> "4".equals(e.getDPhuongThuc()))
+                    .map(DiemThiXettuyen::getN1Thi)
+                    .filter(Objects::nonNull)
+                    .max(Double::compare)
+                    .orElse(0.0);
+
+                double candidateMax = Math.max(valueA, valueB);
+
+                DiemThiXettuyen diemThi = existingList.get(0);
+                 double currentN1 = valueOrZero(diemThi.getN1Thi());
+
+                if (candidateMax > currentN1) {
+                    diemThi.setN1Thi(candidateMax);
+                    if (row.chungChi != null && !row.chungChi.isBlank()) {
+                        diemThi.setLoaiChungChi(truncate(row.chungChi, 50));
+                    }
+                    session.merge(diemThi);
+                    // updateDiemCongIelts(session, row.cccd, row.diemCong, listNganhN1);
+                    updatedCount++;
+                }
+
+                count++;
+                if (count % 50 == 0) {
+                    session.flush(); // Đẩy toàn bộ lệnh INSERT/UPDATE xuống Database
+                    session.clear(); // Xóa sạch các object đang được Hibernate theo dõi
+                }
+            }
+
+            transaction.commit();
+            return updatedCount;
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw new RuntimeException("Lỗi khi import IELTS: " + e.getMessage(), e);
+        } finally {
+            if (session != null) {
+                session.close();
+            }
+        }
+    }
     /**
      * Import danh sách thí sinh từ file Excel
      * Định dạng Excel: [CCCD] [SoBaoDanh] [Ho] [Ten] [NgaySinh] [DienThoai]
@@ -707,7 +848,7 @@ public class ExcelImportService {
         }
 
         if (diemThi.getLoaiChungChi() == null || diemThi.getLoaiChungChi().isBlank()) {
-            diemThi.setLoaiChungChi(tenMon);
+            diemThi.setLoaiChungChi(truncate(tenMon, 50));
         }
     }
 
@@ -925,6 +1066,81 @@ public class ExcelImportService {
         } catch (NumberFormatException e) {
             System.err.println("⚠️ Không thể chuyển '" + cell + "' sang kiểu Integer, sử dụng giá trị mặc định 0");
             return 0;
+        }
+    }
+     private double valueOrZero(Double value) {
+        return value == null ? 0.0 : value;
+    }
+
+    private Double loadCurrentN1Thi(String filePath, String cccd) {
+        Session session = null;
+        try {
+            session = sessionFactory.openSession();
+            List<DiemThiXettuyen> existingList = session.createQuery(
+                            "from DiemThiXettuyen where cccd = :cccd", DiemThiXettuyen.class)
+                    .setParameter("cccd", cccd)
+                    .getResultList();
+
+            if (existingList.isEmpty()) {
+                return 0.0;
+            }
+
+            return valueOrZero(existingList.get(0).getN1Thi());
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi đọc N1_THI hiện tại cho CCCD " + cccd + ": " + e.getMessage(), e);
+        } finally {
+            if (session != null) {
+                session.close();
+            }
+        }
+    }
+
+
+    private String truncate(String s, int maxLen) {
+        if (s == null) return null;
+        String t = s.trim();
+        if (t.length() <= maxLen) return t;
+        return t.substring(0, maxLen);
+    }
+
+    // Thêm tham số List<NganhTohop> listNganhN1 vào hàm
+    private void updateDiemCongIelts(Session session, String cccd, Double diemIelts, List<NganhTohop> listNganhN1) {
+        if (cccd == null || cccd.isEmpty()) return;
+
+        for (NganhTohop nt : listNganhN1) {
+            // Tránh null cho các thành phần tạo nên dcKey
+            String maNganh = nt.getMaNganh() != null ? nt.getMaNganh() : "";
+            String maTohop = nt.getMaTohop() != null ? nt.getMaTohop() : "";
+            String dcKey = cccd + "_" + maNganh + "_" + maTohop;
+            
+            DiemCongXettuyen dc = session.createQuery(
+                    "FROM DiemCongXettuyen WHERE dcKeys = :dcKey", DiemCongXettuyen.class)
+                    .setParameter("dcKey", dcKey)
+                    .uniqueResult();
+
+            if (dc != null) {
+                dc.setDiemCc(diemIelts);
+                double d1 = (dc.getDiemCc() != null) ? dc.getDiemCc() : 0;
+                double d2 = (dc.getDiemUtxt() != null) ? dc.getDiemUtxt() : 0;
+                double tong = (d1 + d2 < 3 ? d1 + d2 : 3);
+                dc.setDiemTong(tong);
+                session.merge(dc);
+            } else {
+                DiemCongXettuyen newDc = new DiemCongXettuyen();
+                newDc.setTsCccd(cccd);
+                newDc.setMaNganh(maNganh);
+                newDc.setMaTohop(maTohop);
+                newDc.setPhuongThuc("4");
+                newDc.setDiemCc(diemIelts);
+                newDc.setDiemUtxt(0.0);
+                
+                double sum = diemIelts != null ? diemIelts : 0;
+                newDc.setDiemTong(sum > 3 ? 3 : sum);
+                newDc.setDcKeys(dcKey);
+                newDc.setGhiChu("Cập nhật từ IELTS");
+                
+                session.persist(newDc);
+            }
         }
     }
 }
