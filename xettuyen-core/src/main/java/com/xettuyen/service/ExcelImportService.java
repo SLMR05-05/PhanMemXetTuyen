@@ -209,10 +209,10 @@ public class ExcelImportService {
         try {
             session = sessionFactory.openSession();
             transaction = session.beginTransaction();
+            List<Object[]> listNganhKhongN1 = session.createQuery(
+                "SELECT n.maNganh, n.maTohop FROM NganhTohop n WHERE n.n1 = 0 OR n.n1 IS NULL", Object[].class)
+                .getResultList();
 
-            List<NganhTohop> listNganhN1 = session.createQuery(
-            "FROM NganhTohop WHERE n1 IS NULL", NganhTohop.class)
-            .getResultList();
             int count = 0;
             for (IeltsRow row : bestByCccd.values()) {
                 List<DiemThiXettuyen> existingList = session.createQuery(
@@ -245,7 +245,7 @@ public class ExcelImportService {
                         diemThi.setLoaiChungChi(truncate(row.chungChi, 50));
                     }
                     session.merge(diemThi);
-                    // updateDiemCongIelts(session, row.cccd, row.diemCong, listNganhN1);
+                    updateDiemCongIelts(session, row.cccd, row.diemQuyDoi, listNganhKhongN1);
                     updatedCount++;
                 }
 
@@ -1072,73 +1072,53 @@ public class ExcelImportService {
         return value == null ? 0.0 : value;
     }
 
-    private Double loadCurrentN1Thi(String filePath, String cccd) {
-        Session session = null;
-        try {
-            session = sessionFactory.openSession();
-            List<DiemThiXettuyen> existingList = session.createQuery(
-                            "from DiemThiXettuyen where cccd = :cccd", DiemThiXettuyen.class)
-                    .setParameter("cccd", cccd)
-                    .getResultList();
-
-            if (existingList.isEmpty()) {
-                return 0.0;
-            }
-
-            return valueOrZero(existingList.get(0).getN1Thi());
-        } catch (Exception e) {
-            throw new RuntimeException("Lỗi khi đọc N1_THI hiện tại cho CCCD " + cccd + ": " + e.getMessage(), e);
-        } finally {
-            if (session != null) {
-                session.close();
-            }
-        }
-    }
-
-
     private String truncate(String s, int maxLen) {
         if (s == null) return null;
         String t = s.trim();
         if (t.length() <= maxLen) return t;
         return t.substring(0, maxLen);
-    }
+    }    
 
-    // Thêm tham số List<NganhTohop> listNganhN1 vào hàm
-    private void updateDiemCongIelts(Session session, String cccd, Double diemIelts, List<NganhTohop> listNganhN1) {
-        if (cccd == null || cccd.isEmpty()) return;
+    private void updateDiemCongIelts(Session session, String cccd, Double diemIelts, List<Object[]> listNganhKhongN1) {
+        if (cccd == null || cccd.isEmpty() || diemIelts == null) return;
 
-        for (NganhTohop nt : listNganhN1) {
-            // Tránh null cho các thành phần tạo nên dcKey
-            String maNganh = nt.getMaNganh() != null ? nt.getMaNganh() : "";
-            String maTohop = nt.getMaTohop() != null ? nt.getMaTohop() : "";
+        for (Object[] nt : listNganhKhongN1) {
+            String maNganh = nt[0] != null ? nt[0].toString() : "";
+            String maTohop = nt[1] != null ? nt[1].toString() : "";
+
+            if (maNganh.isEmpty() || maTohop.isEmpty()) continue;
+
             String dcKey = cccd + "_" + maNganh + "_" + maTohop;
-            
+
+            // Tìm bản ghi điểm cộng hiện tại
             DiemCongXettuyen dc = session.createQuery(
                     "FROM DiemCongXettuyen WHERE dcKeys = :dcKey", DiemCongXettuyen.class)
                     .setParameter("dcKey", dcKey)
                     .uniqueResult();
 
             if (dc != null) {
+                // Cập nhật điểm cộng nếu bản ghi đã tồn tại
                 dc.setDiemCc(diemIelts);
-                double d1 = (dc.getDiemCc() != null) ? dc.getDiemCc() : 0;
-                double d2 = (dc.getDiemUtxt() != null) ? dc.getDiemUtxt() : 0;
-                double tong = (d1 + d2 < 3 ? d1 + d2 : 3);
-                dc.setDiemTong(tong);
+                double d1 = (dc.getDiemCc() != null) ? dc.getDiemCc() : 0.0;
+                double d2 = (dc.getDiemUtxt() != null) ? dc.getDiemUtxt() : 0.0;
+                double tong = d1 + d2;
+                
+                // Giới hạn điểm tổng không vượt quá 3.0
+                dc.setDiemTong(tong > 3.0 ? 3.0 : tong);
                 session.merge(dc);
             } else {
+                // Tạo bản ghi mới nếu chưa tồn tại
                 DiemCongXettuyen newDc = new DiemCongXettuyen();
                 newDc.setTsCccd(cccd);
                 newDc.setMaNganh(maNganh);
                 newDc.setMaTohop(maTohop);
                 newDc.setPhuongThuc("4");
                 newDc.setDiemCc(diemIelts);
-                newDc.setDiemUtxt(0.0);
+                newDc.setDiemUtxt(0.0); // Mặc định điểm ưu tiên bằng 0 nếu chưa có
                 
-                double sum = diemIelts != null ? diemIelts : 0;
-                newDc.setDiemTong(sum > 3 ? 3 : sum);
+                newDc.setDiemTong(diemIelts > 3.0 ? 3.0 : diemIelts);
                 newDc.setDcKeys(dcKey);
-                newDc.setGhiChu("Cập nhật từ IELTS");
-                
+                newDc.setGhiChu("Cập nhật điểm cộng từ IELTS");
                 session.persist(newDc);
             }
         }

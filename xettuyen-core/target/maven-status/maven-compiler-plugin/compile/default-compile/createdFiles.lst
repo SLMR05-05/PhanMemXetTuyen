@@ -2,6 +2,7 @@ com\xettuyen\service\ThiSinhService$HomeDashboardData.class
 com\xettuyen\ui\panel\DiemCongSubPanel.class
 com\xettuyen\dao\DiemThiDAO.class
 com\xettuyen\entity\NganhTohop.class
+com\xettuyen\ui\panel\DiemThiSubPanel$5.class
 com\xettuyen\ui\panel\UserManagementPanel.class
 com\xettuyen\ui\dialog\tohop.class
 com\xettuyen\ui\LoginForm$RoundedTextField.class
@@ -129,6 +130,7 @@ com\xettuyen\util\HibernateUtil.class
 com\xettuyen\dao\ToHopDAO.class
 com\xettuyen\ui\MainFrame$6.class
 com\xettuyen\service\ThiSinhService$SearchResult.class
+com\xettuyen\service\ExcelImportService$IeltsRow.class
 com\xettuyen\ui\panel\DiemThiSubPanel$3.class
 com\xettuyen\ui\panel\UserManagementPanel$2.class
 com\xettuyen\entity\NguyenVongXettuyen.class
