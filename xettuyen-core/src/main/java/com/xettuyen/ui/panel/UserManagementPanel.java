@@ -1,3 +1,8 @@
+/**
+ * Quản lý người dùng - User Management Panel
+ * - Hiển thị danh sách người dùng với phân trang và tìm kiếm
+ */
+
 package com.xettuyen.ui.panel;
 
 import com.xettuyen.entity.User;
@@ -16,19 +21,32 @@ import javax.swing.table.TableCellRenderer;
 
 public class UserManagementPanel extends JPanel {
 
-	private static final int PAGE_SIZE = 10;
+	private static final int PAGE_SIZE = 20;
 
 	private final UserService userService = new UserService();
 
+	/** Các thành phần trang
+	 * - searchField: ô tìm kiếm người dùng theo username/email/fullname/role
+	 * - pageField: ô nhập số trang hiện tại
+	 * - totalPageField: hiển thị tổng số trang
+	 * - prevBtn: nút chuyển trang trước
+	 * - nextBtn: nút chuyển trang sau
+	 */
 	private JTextField searchField;
 	private JTextField pageField;
 	private JTextField totalPageField;
 	private JButton prevBtn;
 	private JButton nextBtn;
-	private DefaultTableModel model;
-	private JTable table;
 	private int totalPages = 1;
 
+	/**
+	 * model: mô hình dữ liệu cho bảng người dùng
+	 * table: bảng hiển thị danh sách người dùng
+	 */
+	private DefaultTableModel model;
+	private JTable table;
+
+	/** Các hằng số màu */
 	public static final Color C_PRIMARY = new Color(0x00, 0x62, 0xFF);
 	public static final Color C_PRIMARY_HV = new Color(0x00, 0x4E, 0xCC);
 	public static final Color C_CONTENT_BG = new Color(0xF0, 0xF4, 0xFF);
@@ -40,6 +58,7 @@ public class UserManagementPanel extends JPanel {
 	public static final Color C_DANGER_HV = new Color(0xB0, 0x2A, 0x37);
 	public static final Color C_WARNING = new Color(0xFF, 0x8C, 0x00);
 
+	/** Các chức năng hỗ trợ căn chỉnh kích thước các thành phần */
 	private static final int SW;
 	private static final int SH;
 
@@ -60,6 +79,7 @@ public class UserManagementPanel extends JPanel {
 	public UserManagementPanel() {
 		setLayout(new BorderLayout());
 
+		/* North (Search) ================================================================================ */
 		JPanel northPanel = new JPanel(new GridBagLayout());
 		northPanel.setBackground(C_CONTENT_BG);
 		northPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -71,8 +91,8 @@ public class UserManagementPanel extends JPanel {
 		searchField.putClientProperty("JTextField.showClearButton", true);
 		searchField.putClientProperty("FlatLaf.style",
 				"arc: 10; " +
-						"font: 14 $font; " +
-						"foreground: " + toHex(C_TEXT) + "; ");
+				"font: 14 $font; " +
+				"foreground: " + toHex(C_TEXT) + "; ");
 
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 0;
@@ -81,6 +101,24 @@ public class UserManagementPanel extends JPanel {
 		gbc.fill = GridBagConstraints.HORIZONTAL;
 		northPanel.add(searchField, gbc);
 
+		searchField.getDocument().addDocumentListener(new DocumentListener() {
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				loadUsers(1);
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				loadUsers(1);
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				loadUsers(1);
+			}
+		});
+
+		/* Center (Table) ============================================================================== */
 		JPanel centerPanel = new JPanel(new BorderLayout());
 		centerPanel.setBackground(C_CONTENT_BG);
 		centerPanel.setBorder(new EmptyBorder(0, 10, 10, 10));
@@ -122,6 +160,7 @@ public class UserManagementPanel extends JPanel {
 		scrollPane.putClientProperty("FlatLaf.style", "arc: 15;borderWidth: 0;focusWidth: 0;");
 		centerPanel.add(scrollPane, BorderLayout.CENTER);
 
+		/* South (Pagination) ============================================================================== */
 		JPanel southPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 		southPanel.setBackground(C_CONTENT_BG);
 		southPanel.setBorder(new EmptyBorder(0, 10, 10, 10));
@@ -176,23 +215,6 @@ public class UserManagementPanel extends JPanel {
 		prevBtn.addActionListener(e -> loadUsers(getCurrentPage() - 1));
 		nextBtn.addActionListener(e -> loadUsers(getCurrentPage() + 1));
 		pageField.addActionListener(e -> loadUsers(getCurrentPage()));
-
-		searchField.getDocument().addDocumentListener(new DocumentListener() {
-			@Override
-			public void insertUpdate(DocumentEvent e) {
-				loadUsers(1);
-			}
-
-			@Override
-			public void removeUpdate(DocumentEvent e) {
-				loadUsers(1);
-			}
-
-			@Override
-			public void changedUpdate(DocumentEvent e) {
-				loadUsers(1);
-			}
-		});
 
 		southPanel.add(prevBtn);
 		southPanel.add(pageField);

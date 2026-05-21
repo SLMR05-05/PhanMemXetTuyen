@@ -1,26 +1,29 @@
 package com.xettuyen.ui.panel;
 
-import com.xettuyen.dao.DAOFactory;
 import com.xettuyen.entity.NguyenVongXettuyen;
 import com.xettuyen.entity.ThiSinhXettuyen;
+import com.xettuyen.service.ExcelImportService;
 import com.xettuyen.service.ThiSinhService;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 public class CandidateManagementPanel extends JPanel {
 
-    private static final int PAGE_SIZE = 10;
+    private static final int PAGE_SIZE = 20;
 
+    private final ExcelImportService excelImportService = new ExcelImportService();
     private final ThiSinhService thiSinhService = new ThiSinhService();
 
     private JTextField searchField;
@@ -28,6 +31,7 @@ public class CandidateManagementPanel extends JPanel {
     private JTextField totalPageField;
     private JButton prevBtn;
     private JButton nextBtn;
+    private JButton importBtn;
     private DefaultTableModel model;
     private JTable table;
 
@@ -101,7 +105,7 @@ public class CandidateManagementPanel extends JPanel {
         gbc.weightx = 0; 
         northPanel.add(space, gbc);
 
-        JButton importBtn = new JButton("Import");
+        importBtn = new JButton("Import");
         importBtn.setPreferredSize(new Dimension(vw(10), vh(5)));
         importBtn.putClientProperty("FlatLaf.style", 
             "arc: 10; " + 
@@ -116,6 +120,7 @@ public class CandidateManagementPanel extends JPanel {
         gbc.weightx = 0; 
         gbc.fill = GridBagConstraints.NONE;
         northPanel.add(importBtn, gbc);
+        importBtn.addActionListener(e -> openImportFileDialog());
 
         // == Center =========================================
         JPanel centerPanel = new JPanel(new BorderLayout());
@@ -123,11 +128,11 @@ public class CandidateManagementPanel extends JPanel {
         centerPanel.setBorder(new EmptyBorder(0, 10, 10, 10)); // Cách lề để không dính sát viền
 
         // Khởi tạo table như hướng dẫn trên
-        String[] headers = {"ID", "CCCD", "SBD", "Họ", "Tên", "Chức năng"};
+        String[] headers = {"ID", "CCCD", "SBD", "Họ", "Tên", "Trạng thái trúng tuyển", "Ngành trúng tuyển", "Chức năng"};
         model = new DefaultTableModel(headers, 0){
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 5; // Chỉ cho phép bấm nút "Chi tiết" ở cột cuối
+                return column == 7; // Chỉ cho phép bấm nút "Chi tiết" ở cột cuối
             }
         };
         table = new JTable(model);
@@ -135,12 +140,12 @@ public class CandidateManagementPanel extends JPanel {
         // -- Customize table -----------------------------------------
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         int equalWidth = 130;
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 8; i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(equalWidth);
         }
         // Gắn renderer + editor để cột "Chức năng" hiển thị nút thật thay vì text.
-        table.getColumnModel().getColumn(5).setCellRenderer(new DetailButtonRenderer());
-        table.getColumnModel().getColumn(5).setCellEditor(new DetailButtonEditor(table));
+        table.getColumnModel().getColumn(7).setCellRenderer(new DetailButtonRenderer());
+        table.getColumnModel().getColumn(7).setCellEditor(new DetailButtonEditor(table));
 
         table.getTableHeader().setPreferredSize(new Dimension(0, vh(5)));
         table.getTableHeader().putClientProperty("FlatLaf.style", 
@@ -283,6 +288,8 @@ public class CandidateManagementPanel extends JPanel {
                 thiSinh.getSoBaoDanh(),
                 thiSinh.getHo(),
                 thiSinh.getTen(),
+                thiSinh.getTrangThaiTrungTuyen(),
+                thiSinh.getNganhTrungTuyen(),
                 "Chi tiết"
             });
         }
@@ -299,6 +306,102 @@ public class CandidateManagementPanel extends JPanel {
         } catch (NumberFormatException ex) {
             return 1;
         }
+    }
+
+    private void openImportFileDialog() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Chọn file Excel thí sinh");
+        chooser.setFileFilter(new FileNameExtensionFilter("Excel Workbook (*.xlsx)", "xlsx"));
+
+        int selected = chooser.showOpenDialog(this);
+        if (selected != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File file = chooser.getSelectedFile();
+        if (file == null) {
+            return;
+        }
+
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JDialog loadingDialog = createImportLoadingDialog(owner);
+
+        importBtn.setEnabled(false);
+
+        SwingWorker<Integer, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Integer doInBackground() {
+                // Only import candidate information (không import điểm)
+                java.util.List<ThiSinhXettuyen> list = excelImportService.importThiSinh(file.getAbsolutePath());
+                return list == null ? 0 : list.size();
+            }
+
+            @Override
+            protected void done() {
+                loadingDialog.dispose();
+                importBtn.setEnabled(true);
+
+                try {
+                    int importedRows = get();
+                    JOptionPane.showMessageDialog(
+                        CandidateManagementPanel.this,
+                        "Đã import thành công " + importedRows + " thí sinh (chỉ thông tin).",
+                        "Import thành công",
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+                    loadCandidates(1);
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    JOptionPane.showMessageDialog(
+                        CandidateManagementPanel.this,
+                        cause.getMessage(),
+                        "Import thất bại",
+                        JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+        };
+
+        worker.execute();
+        loadingDialog.setVisible(true);
+    }
+
+    private JDialog createImportLoadingDialog(Window owner) {
+        JDialog dialog = new JDialog(owner, "Đang import", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        dialog.setResizable(false);
+
+        JPanel root = new JPanel(new BorderLayout(10, 10));
+        root.setBorder(new EmptyBorder(16, 16, 16, 16));
+        root.setBackground(C_CARD);
+
+        JLabel title = new JLabel("Đang import dữ liệu thí sinh...");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        title.setForeground(C_TITLE);
+
+        JLabel message = new JLabel("Vui lòng chờ trong giây lát ...");
+        message.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        message.setForeground(C_TEXT);
+
+        JProgressBar progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        progressBar.putClientProperty("FlatLaf.style",
+            "arc: 8; " +
+            "foreground: " + toHex(C_PRIMARY) + ";"
+        );
+
+        root.add(title, BorderLayout.NORTH);
+
+        JPanel center = new JPanel(new BorderLayout(0, 8));
+        center.setOpaque(false);
+        center.add(message, BorderLayout.NORTH);
+        center.add(progressBar, BorderLayout.CENTER);
+        root.add(center, BorderLayout.CENTER);
+
+        dialog.setContentPane(root);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        return dialog;
     }
 
 
