@@ -87,9 +87,16 @@ public class ThiSinhService {
      * Tìm kiếm thí sinh với phân trang (ứng dụng UI)
      */
     public SearchResult<ThiSinhXettuyen> searchThiSinh(String keyword, int pageNumber, int pageSize) {
+        return searchThiSinh(keyword, null, pageNumber, pageSize);
+    }
+
+    /**
+     * Tìm kiếm thí sinh với phân trang và lọc theo ngành trúng tuyển.
+     */
+    public SearchResult<ThiSinhXettuyen> searchThiSinh(String keyword, String maNganh, int pageNumber, int pageSize) {
         int offset = (pageNumber - 1) * pageSize;
-        List<ThiSinhXettuyen> data = thiSinhDAO.searchByKeyword(keyword, offset, pageSize);
-        long totalRecords = thiSinhDAO.countSearchResult(keyword);
+        List<ThiSinhXettuyen> data = thiSinhDAO.searchByKeywordAndNganh(keyword, maNganh, offset, pageSize);
+        long totalRecords = thiSinhDAO.countSearchResult(keyword, maNganh);
         int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
 
         return new SearchResult<>(data, pageNumber, pageSize, totalRecords, totalPages);

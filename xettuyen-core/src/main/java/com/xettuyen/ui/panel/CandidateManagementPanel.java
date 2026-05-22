@@ -1,8 +1,10 @@
 package com.xettuyen.ui.panel;
 
 import com.xettuyen.entity.NguyenVongXettuyen;
+import com.xettuyen.entity.Nganh;
 import com.xettuyen.entity.ThiSinhXettuyen;
 import com.xettuyen.service.ExcelImportService;
+import com.xettuyen.service.NganhService;
 import com.xettuyen.service.ThiSinhService;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -24,9 +26,11 @@ public class CandidateManagementPanel extends JPanel {
     private static final int PAGE_SIZE = 20;
 
     private final ExcelImportService excelImportService = new ExcelImportService();
+    private final NganhService nganhService = new NganhService();
     private final ThiSinhService thiSinhService = new ThiSinhService();
 
     private JTextField searchField;
+    private JComboBox<NganhFilterOption> nganhFilterCombo;
     private JTextField pageField;
     private JTextField totalPageField;
     private JButton prevBtn;
@@ -121,6 +125,22 @@ public class CandidateManagementPanel extends JPanel {
         gbc.fill = GridBagConstraints.NONE;
         northPanel.add(importBtn, gbc);
         importBtn.addActionListener(e -> openImportFileDialog());
+
+        nganhFilterCombo = new JComboBox<>();
+        nganhFilterCombo.setPreferredSize(new Dimension(vw(22), vh(5)));
+        nganhFilterCombo.putClientProperty("FlatLaf.style", 
+            "arc: 10; " +
+            "font: 14 $font; " +
+            "foreground: " + toHex(C_TEXT) + "; " +
+            "background: #FFFFFF; "
+        );
+        loadNganhFilterOptions();
+        nganhFilterCombo.addActionListener(e -> loadCandidates(1));
+
+        gbc.gridx = 3;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
+        northPanel.add(nganhFilterCombo, gbc);
 
         // == Center =========================================
         JPanel centerPanel = new JPanel(new BorderLayout());
@@ -270,8 +290,9 @@ public class CandidateManagementPanel extends JPanel {
     private void loadCandidates(int requestedPage) {
         int safePage = Math.max(1, requestedPage);
         String keyword = searchField.getText() == null ? "" : searchField.getText().trim();
+        String selectedNganh = getSelectedNganhCode();
 
-        ThiSinhService.SearchResult<ThiSinhXettuyen> result = thiSinhService.searchThiSinh(keyword, safePage, PAGE_SIZE);
+        ThiSinhService.SearchResult<ThiSinhXettuyen> result = thiSinhService.searchThiSinh(keyword, selectedNganh, safePage, PAGE_SIZE);
         totalPages = Math.max(1, result.totalPages);
 
         int currentPage = Math.max(1, Math.min(result.currentPage, totalPages));
@@ -293,6 +314,47 @@ public class CandidateManagementPanel extends JPanel {
                 "Chi tiết"
             });
         }
+    }
+
+    private void loadNganhFilterOptions() {
+        DefaultComboBoxModel<NganhFilterOption> comboModel = new DefaultComboBoxModel<>();
+        comboModel.addElement(new NganhFilterOption(null, "Tất cả ngành"));
+
+        List<Nganh> nganhList = nganhService.getAllNganh();
+        if (nganhList != null) {
+            for (Nganh nganh : nganhList) {
+                if (nganh == null) {
+                    continue;
+                }
+                String maNganh = nganh.getMaNganh() == null ? "" : nganh.getMaNganh().trim();
+                if (maNganh.isEmpty()) {
+                    continue;
+                }
+                String tenNganh = nganh.getTenNganh() == null ? "" : nganh.getTenNganh().trim();
+                String label = tenNganh.isEmpty() ? maNganh : maNganh + " - " + tenNganh;
+                comboModel.addElement(new NganhFilterOption(maNganh, label));
+            }
+        }
+
+        nganhFilterCombo.setModel(comboModel);
+        nganhFilterCombo.setSelectedIndex(0);
+        nganhFilterCombo.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            JLabel label = new JLabel(value == null ? "" : value.displayText);
+            label.setOpaque(true);
+            label.setBorder(new EmptyBorder(4, 8, 4, 8));
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            label.setForeground(isSelected ? Color.WHITE : C_TEXT);
+            label.setBackground(isSelected ? C_PRIMARY : Color.WHITE);
+            return label;
+        });
+    }
+
+    private String getSelectedNganhCode() {
+        NganhFilterOption option = (NganhFilterOption) nganhFilterCombo.getSelectedItem();
+        if (option == null || option.maNganh == null || option.maNganh.trim().isEmpty()) {
+            return null;
+        }
+        return option.maNganh.trim();
     }
 
     /**
@@ -755,6 +817,21 @@ public class CandidateManagementPanel extends JPanel {
 
     private static String valueOrDefault(Number value) {
         return value == null ? "Chưa có" : String.valueOf(value);
+    }
+
+    private static class NganhFilterOption {
+        private final String maNganh;
+        private final String displayText;
+
+        private NganhFilterOption(String maNganh, String displayText) {
+            this.maNganh = maNganh;
+            this.displayText = displayText;
+        }
+
+        @Override
+        public String toString() {
+            return displayText;
+        }
     }
 
 }

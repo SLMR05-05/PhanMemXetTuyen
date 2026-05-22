@@ -61,6 +61,36 @@ public class ThiSinhDAO extends BaseDAO<ThiSinhXettuyen> {
     }
 
     /**
+     * Tìm kiếm thí sinh theo keyword và ngành trúng tuyển.
+     * Nếu maNganh rỗng/null thì bỏ qua điều kiện lọc ngành.
+     */
+    public List<ThiSinhXettuyen> searchByKeywordAndNganh(String keyword, String maNganh, int offset, int limit) {
+        try {
+            Session session = sessionFactory.openSession();
+            StringBuilder hql = new StringBuilder(
+                    "FROM ThiSinhXettuyen WHERE (CONCAT(ho, ' ', ten) LIKE :keyword OR cccd LIKE :keyword)");
+
+            boolean filterByNganh = maNganh != null && !maNganh.trim().isEmpty();
+            if (filterByNganh) {
+                hql.append(" AND LOWER(TRIM(nganhTrungTuyen)) = LOWER(TRIM(:maNganh))");
+            }
+
+            Query<ThiSinhXettuyen> query = session.createQuery(hql.toString(), ThiSinhXettuyen.class);
+            query.setParameter("keyword", "%" + (keyword == null ? "" : keyword.trim()) + "%");
+            if (filterByNganh) {
+                query.setParameter("maNganh", maNganh.trim());
+            }
+            query.setFirstResult(offset);
+            query.setMaxResults(limit);
+            List<ThiSinhXettuyen> result = query.list();
+            session.close();
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi tìm kiếm thí sinh theo ngành: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Đếm kết quả tìm kiếm
      */
     public long countSearchResult(String keyword) {
@@ -74,6 +104,33 @@ public class ThiSinhDAO extends BaseDAO<ThiSinhXettuyen> {
             return count != null ? count : 0;
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi đếm kết quả tìm kiếm: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Đếm kết quả tìm kiếm theo keyword và ngành trúng tuyển.
+     */
+    public long countSearchResult(String keyword, String maNganh) {
+        try {
+            Session session = sessionFactory.openSession();
+            StringBuilder hql = new StringBuilder(
+                    "SELECT COUNT(*) FROM ThiSinhXettuyen WHERE (CONCAT(ho, ' ', ten) LIKE :keyword OR cccd LIKE :keyword)");
+
+            boolean filterByNganh = maNganh != null && !maNganh.trim().isEmpty();
+            if (filterByNganh) {
+                hql.append(" AND LOWER(TRIM(nganhTrungTuyen)) = LOWER(TRIM(:maNganh))");
+            }
+
+            Query<Long> query = session.createQuery(hql.toString(), Long.class);
+            query.setParameter("keyword", "%" + (keyword == null ? "" : keyword.trim()) + "%");
+            if (filterByNganh) {
+                query.setParameter("maNganh", maNganh.trim());
+            }
+            Long count = query.uniqueResult();
+            session.close();
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi đếm kết quả tìm kiếm theo ngành: " + e.getMessage(), e);
         }
     }
 

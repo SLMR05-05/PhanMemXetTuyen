@@ -151,6 +151,13 @@ public class NganhService {
     }
 
     /**
+     * Lấy toàn bộ ngành hiện có trong hệ thống.
+     */
+    public List<Nganh> getAllNganh() {
+        return nganhDAO.findAll(Nganh.class);
+    }
+
+    /**
      * Lấy tổng số ngành
      */
     public long getTotalNganh() {
