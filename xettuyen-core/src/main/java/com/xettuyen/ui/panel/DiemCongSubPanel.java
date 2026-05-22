@@ -13,8 +13,10 @@ import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -101,7 +103,7 @@ public class DiemCongSubPanel extends JPanel {
         btnEdit.addActionListener(e -> handleEdit());
         btnDelete.addActionListener(e -> handleDelete());
         btnExport.addActionListener(e -> handleExport());
-        btnImport.addActionListener(e -> handleImport());
+        btnImport.addActionListener(e -> showImportMenu(btnImport));
 
         loadData(); 
     }
@@ -116,7 +118,20 @@ public class DiemCongSubPanel extends JPanel {
         table.setIntercellSpacing(new Dimension(0, 0));
         table.getColumnModel().getColumn(0).setPreferredWidth(50);
     }
+        private void showImportMenu(JButton anchor) {
+        JPopupMenu menu = new JPopupMenu();
 
+        JMenuItem importThiTotNghiep = new JMenuItem("Import điểm Cộng ưu tiên xét tuyển");
+        importThiTotNghiep.addActionListener(e -> handleImportDiemCongUuTien());
+
+        JMenuItem importDgnlVsat = new JMenuItem("Import điểm cộng Chứng Chỉ");
+        importDgnlVsat.addActionListener(e -> handleImportDiemCongCC());
+
+
+        menu.add(importThiTotNghiep);
+        menu.add(importDgnlVsat);
+        menu.show(anchor, 0, anchor.getHeight());
+    }
     private JButton createStyledButton(String text, Color bg) {
         JButton b = new JButton(text);
         b.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -243,7 +258,7 @@ public class DiemCongSubPanel extends JPanel {
         }
     }
 
-    private void handleImport() {
+    private void handleImportDiemCongUuTien() {
         JFileChooser fs = new JFileChooser();
         fs.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
     
@@ -254,30 +269,56 @@ public class DiemCongSubPanel extends JPanel {
             new SwingWorker<Integer, Void>() {
                 @Override
                 protected Integer doInBackground() throws Exception {
-                    List<DiemCongXettuyen> list = new ExcelImportService().importDiemCong(path);
-                    int count = 0;
-                    for (DiemCongXettuyen dc : list) {
-                        try {
-                            DAOFactory.getDiemCongDAO().save(dc);
-                            count++;
-                        } catch (Exception e) {
-                            // Nếu trùng Key thì cập nhật
-                            DAOFactory.getDiemCongDAO().update(dc);
-                            count++;
-                        }
-                    }
-                    return count;
+                    return new ExcelImportService().importDiemCongUuTien(path);
                 }
 
                 @Override
                 protected void done() {
                     try {
-                        int total = get();
-                        loadData(); // Load lại bảng
-                        DiemPanel.addLog("Import Excel thành công: " + total + " dòng điểm cộng.");
-                        JOptionPane.showMessageDialog(DiemCongSubPanel.this, "Đã nhập thành công " + total + " bản ghi!");
+                        int total = get(); // Lấy kết quả từ doInBackground()
+                        loadData();        // Load lại bảng giao diện
+                        DiemPanel.addLog("Import điểm ưu tiên (UTXT) thành công: " + total + " thí sinh.");
+                        JOptionPane.showMessageDialog(DiemCongSubPanel.this, 
+                                "Đã xử lý và cập nhật điểm UTXT thành công cho " + total + " thí sinh!");
                     } catch (Exception e) {
-                        JOptionPane.showMessageDialog(DiemCongSubPanel.this, "Lỗi: " + e.getMessage());
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(DiemCongSubPanel.this, 
+                                "Lỗi trong quá trình import: " + e.getMessage(), 
+                                "Lỗi Import", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }.execute();
+        }
+    }
+
+    private void handleImportDiemCongCC() {
+        JFileChooser fs = new JFileChooser();
+        fs.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+    
+        if (fs.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            String path = fs.getSelectedFile().getPath();
+        
+            // Chạy ngầm để không bị đơ ứng dụng
+            new javax.swing.SwingWorker<Integer, Void>() {
+                @Override
+                protected Integer doInBackground() throws Exception {
+                    // Gọi hàm mới tạo trong Service
+                    return new ExcelImportService().importDiemCongCC(path);
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        int total = get(); // Lấy số lượng thí sinh thành công
+                        loadData();        // Refresh lại bảng (nếu có hàm này)
+                        DiemPanel.addLog("Import điểm cộng CC thành công: " + total + " thí sinh.");
+                        javax.swing.JOptionPane.showMessageDialog(null, 
+                                "Đã xử lý và cập nhật điểm CC thành công cho " + total + " thí sinh!");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        javax.swing.JOptionPane.showMessageDialog(null, 
+                                "Lỗi trong quá trình import: " + e.getMessage(), 
+                                "Lỗi Import", javax.swing.JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }.execute();
