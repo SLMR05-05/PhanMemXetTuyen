@@ -2,7 +2,7 @@ package com.xettuyen.service;
 
 import com.xettuyen.dao.*;
 import com.xettuyen.entity.*;
-import com.xettuyen.dao.DAOFactory;
+
 import java.util.*;
 
 /**
@@ -283,6 +283,9 @@ public class XetTuyenService {
 
     public String xetNguyenVongToanBo() {
         try {
+            // ==========================================
+            // BƯỚC 1: LẤY DỮ LIỆU & TÍNH ĐIỂM XÉT TUYỂN
+            // ==========================================
             List<ThiSinhXettuyen> allThiSinh = thiSinhDAO.findAll(ThiSinhXettuyen.class);
             if (allThiSinh == null || allThiSinh.isEmpty()) {
                 return "Không có thí sinh nào trong hệ thống.";
@@ -291,119 +294,128 @@ public class XetTuyenService {
             Map<String, List<NguyenVongXettuyen>> nguyenVongByCccd = new LinkedHashMap<>();
             List<ThiSinhXettuyen> thiSinhCoNguyenVong = new ArrayList<>();
             int tongNguyenVong = 0;
+
             for (ThiSinhXettuyen thiSinh : allThiSinh) {
-                if (thiSinh == null || isBlank(thiSinh.getCccd())) {
-                    continue;
-                }
-                tinhDiemXetTuyenCuaThiSinh(thiSinh.getCccd());
+                if (thiSinh == null || isBlank(thiSinh.getCccd())) continue;
+                
+                
                 List<NguyenVongXettuyen> nguyenVongList = nguyenVongDAO.findByCCCD(thiSinh.getCccd());
-                if (nguyenVongList == null || nguyenVongList.isEmpty()) {
-                    continue;
-                }
+                if (nguyenVongList == null || nguyenVongList.isEmpty()) continue;
+                
                 thiSinhCoNguyenVong.add(thiSinh);
                 nguyenVongByCccd.put(thiSinh.getCccd(), nguyenVongList);
                 tongNguyenVong += nguyenVongList.size();
+                
+                // Xóa trạng thái trúng tuyển cũ trước khi xét duyệt mới
                 thiSinh.setTrangThaiTrungTuyen(null);
                 thiSinh.setNganhTrungTuyen(null);
-                thiSinhDAO.update(thiSinh);
             }
 
             if (thiSinhCoNguyenVong.isEmpty()) {
                 return "Không có nguyện vọng nào để xét.";
             }
 
+            // ==========================================
+            // BƯỚC 2: THIẾT LẬP THÔNG SỐ CÁC NGÀNH
+            // ==========================================
             List<Nganh> allNganh = nganhDAO.findAll(Nganh.class);
             Map<String, Nganh> nganhByMa = new LinkedHashMap<>();
             Map<String, Integer> slotsRemainingByNganh = new LinkedHashMap<>();
-            Map<String, List<Double>> admittedScoresByNganh = new LinkedHashMap<>();
-            Map<String, Double> finalCutoffByNganh = new LinkedHashMap<>();
+            Map<String, Double> minAdmittedScoreByNganh = new HashMap<>(); // Dùng để lưu điểm chuẩn
+
             for (Nganh nganh : allNganh) {
                 String maNganh = safeCode(nganh.getMaNganh());
-                if (maNganh.isEmpty()) {
-                    continue;
-                }
+                if (maNganh.isEmpty()) continue;
+                
                 nganhByMa.put(maNganh, nganh);
+                // Xác định chỉ tiêu
                 int chiTieu = nganh.getNChiTieu() != null ? nganh.getNChiTieu() : 0;
+                // Tạo bộ đếm số chỗ còn lại
                 slotsRemainingByNganh.put(maNganh, Math.max(0, chiTieu));
-                admittedScoresByNganh.put(maNganh, new ArrayList<>());
-                finalCutoffByNganh.put(maNganh, null);
             }
 
+            // ==========================================
+            // BƯỚC 3: SÀNG LỌC VÀ XẾP HẠNG TOÀN CỤC
+            // ==========================================
             List<WishSelection> tatCaXepHang = new ArrayList<>();
+            
             for (ThiSinhXettuyen thiSinh : thiSinhCoNguyenVong) {
                 List<NguyenVongXettuyen> nguyenVongList = nguyenVongByCccd.get(thiSinh.getCccd());
                 for (NguyenVongXettuyen nguyenVong : nguyenVongList) {
                     Double diemXetTuyen = nguyenVong.getDiemXettuyen();
-                    if (diemXetTuyen == null) {
-                        continue;
-                    }
+                    if (diemXetTuyen == null) continue;
+
                     String maNganh = safeCode(nguyenVong.getNvMaNganh());
                     Nganh nganh = nganhByMa.get(maNganh);
-                    if (nganh == null) {
-                        continue;
-                    }
+                    if (nganh == null) continue;
+
                     double diemSan = nganh.getNDiemSan() != null ? nganh.getNDiemSan() : 0.0;
-                    if (diemXetTuyen < diemSan) {
-                        continue;
+                    
+                    // Lọc điểm sàn: Loại bỏ các nguyện vọng < điểm sàn
+                    if (diemXetTuyen >= diemSan) {
+                        tatCaXepHang.add(new WishSelection(thiSinh.getCccd(), nguyenVong, maNganh, diemXetTuyen));
                     }
-                    tatCaXepHang.add(new WishSelection(thiSinh.getCccd(), nguyenVong, maNganh, diemXetTuyen));
                 }
             }
 
+            // Sắp xếp (Sorting) danh sách toàn cục
             tatCaXepHang.sort((a, b) -> {
+                // Ưu tiên 1: Điểm xét tuyển giảm dần
                 int cmp = Double.compare(b.score, a.score);
-                if (cmp != 0) {
-                    return cmp;
-                }
-                cmp = Integer.compare(a.wish.getNvTt() != null ? a.wish.getNvTt() : Integer.MAX_VALUE,
-                        b.wish.getNvTt() != null ? b.wish.getNvTt() : Integer.MAX_VALUE);
-                if (cmp != 0) {
-                    return cmp;
-                }
+                if (cmp != 0) return cmp;
+                
+                // Ưu tiên 2: Thứ tự nguyện vọng (nvTt) tăng dần (Bằng điểm thì NV1 > NV2)
+                int nvTtA = a.wish.getNvTt() != null ? a.wish.getNvTt() : Integer.MAX_VALUE;
+                int nvTtB = b.wish.getNvTt() != null ? b.wish.getNvTt() : Integer.MAX_VALUE;
+                cmp = Integer.compare(nvTtA, nvTtB);
+                if (cmp != 0) return cmp;
+                
+                // Ưu tiên 3: Số thẻ CCCD tăng dần (Để đảm bảo tính nhất quán nếu trùng mọi thứ)
                 return safeCode(a.cccd).compareTo(safeCode(b.cccd));
             });
 
-            Map<String, WishSelection> selectedByCccd = new LinkedHashMap<>();
-            Map<String, List<WishSelection>> selectedByNganh = new LinkedHashMap<>();
+            // ==========================================
+            // BƯỚC 4: PHÂN BỔ CHỖ (MATCHING)
+            // ==========================================
+            // Map lưu kết quả trúng tuyển: CCCD -> Nguyện vọng đậu
+            Map<String, WishSelection> resultTrungTuyenByCccd = new HashMap<>();
+            
             for (WishSelection selection : tatCaXepHang) {
-                if (selectedByCccd.containsKey(selection.cccd)) {
-                    continue;
+                // Kiểm tra 1: Thí sinh này đã trúng tuyển một nguyện vọng nào trước đó chưa?
+                if (resultTrungTuyenByCccd.containsKey(selection.cccd)) {
+                    continue; // Đã trúng tuyển 1 NV rồi -> Bỏ qua
                 }
+                
+                // Kiểm tra 2: Ngành này còn chỉ tiêu không?
                 Integer slotRemaining = slotsRemainingByNganh.get(selection.maNganh);
-                if (slotRemaining == null || slotRemaining <= 0) {
-                    continue;
+                if (slotRemaining != null && slotRemaining > 0) {
+                    // Trúng tuyển: Thỏa mãn cả 2 điều kiện
+                    resultTrungTuyenByCccd.put(selection.cccd, selection);
+                    
+                    // Trừ đi 1 chỉ tiêu
+                    slotsRemainingByNganh.put(selection.maNganh, slotRemaining - 1);
+                    
+                    // Lưu lại mức điểm này. Vì đang quét từ điểm CAO XUỐNG THẤP, 
+                    // điểm của người cuối cùng được add vào Map chính là ĐIỂM CHUẨN của ngành đó.
+                    minAdmittedScoreByNganh.put(selection.maNganh, selection.score);
                 }
-                selectedByCccd.put(selection.cccd, selection);
-                admittedScoresByNganh.computeIfAbsent(selection.maNganh, key -> new ArrayList<>()).add(selection.score);
-                selectedByNganh.computeIfAbsent(selection.maNganh, key -> new ArrayList<>()).add(selection);
-                slotsRemainingByNganh.put(selection.maNganh, slotRemaining - 1);
             }
 
+            // ==========================================
+            // BƯỚC 5: CẬP NHẬT ĐỒNG LOẠT VÀO DATABASE
+            // ==========================================
             int soThiSinhTrungTuyen = 0;
             int soThiSinhRot = 0;
             int soNguyenVongCapNhat = 0;
 
+            // 5.1 & 5.2: Cập nhật bảng ThiSinhXettuyen và bảng NguyenVongXettuyen
             for (ThiSinhXettuyen thiSinh : thiSinhCoNguyenVong) {
-                List<NguyenVongXettuyen> nguyenVongList = nguyenVongByCccd.get(thiSinh.getCccd());
-                if (nguyenVongList == null || nguyenVongList.isEmpty()) {
-                    thiSinh.setTrangThaiTrungTuyen("Không trúng tuyển");
-                    thiSinh.setNganhTrungTuyen(null);
-                    thiSinhDAO.update(thiSinh);
-                    soThiSinhRot++;
-                    continue;
-                }
-
-                WishSelection selected = selectedByCccd.get(thiSinh.getCccd());
-                for (NguyenVongXettuyen nguyenVong : nguyenVongList) {
-                    boolean isSelected = selected != null && Objects.equals(nguyenVong.getIdNv(), selected.wish.getIdNv());
-                    nguyenVong.setNvKetqua(isSelected ? "Đậu" : "Rớt");
-                    nguyenVongDAO.update(nguyenVong);
-                    soNguyenVongCapNhat++;
-                }
-
-                if (selected != null) {
+                WishSelection nguyenVongDau = resultTrungTuyenByCccd.get(thiSinh.getCccd());
+                
+                // --- Cập nhật Bảng ThiSinhXettuyen ---
+                if (nguyenVongDau != null) {
                     thiSinh.setTrangThaiTrungTuyen("Đã trúng tuyển");
-                    thiSinh.setNganhTrungTuyen(selected.maNganh);
+                    thiSinh.setNganhTrungTuyen(nguyenVongDau.maNganh);
                     soThiSinhTrungTuyen++;
                 } else {
                     thiSinh.setTrangThaiTrungTuyen("Không trúng tuyển");
@@ -411,32 +423,32 @@ public class XetTuyenService {
                     soThiSinhRot++;
                 }
                 thiSinhDAO.update(thiSinh);
+
+                // --- Cập nhật Bảng NguyenVongXettuyen ---
+                List<NguyenVongXettuyen> dsNguyenVongCuaThiSinh = nguyenVongByCccd.get(thiSinh.getCccd());
+                for (NguyenVongXettuyen nv : dsNguyenVongCuaThiSinh) {
+                    // Nguyện vọng đang xét có khớp với nguyện vọng đậu (nếu có) không?
+                    boolean isDau = nguyenVongDau != null && Objects.equals(nv.getIdNv(), nguyenVongDau.wish.getIdNv());
+                    nv.setNvKetqua(isDau ? "Đậu" : "Rớt");
+                    nguyenVongDAO.update(nv);
+                    soNguyenVongCapNhat++;
+                }
             }
 
+            // 5.3: Cập nhật Bảng Nganh (Điểm Chuẩn Trúng Tuyển)
             for (Map.Entry<String, Nganh> entry : nganhByMa.entrySet()) {
                 String maNganh = entry.getKey();
                 Nganh nganh = entry.getValue();
-                List<Double> scores = admittedScoresByNganh.get(maNganh);
-                Double cutoff = null;
-                if (scores != null && !scores.isEmpty()) {
-                    cutoff = scores.get(0);
-                    for (Double score : scores) {
-                        if (score != null && (cutoff == null || score < cutoff)) {
-                            cutoff = score;
-                        }
-                    }
-                }
-                nganh.setNDiemTrungTuyen(cutoff);
+                
+                Double diemChuan = minAdmittedScoreByNganh.get(maNganh);
+                nganh.setNDiemTrungTuyen(diemChuan); // Nếu không ai đậu vào ngành, giá trị này sẽ là null
                 nganhDAO.update(nganh);
-                finalCutoffByNganh.put(maNganh, cutoff);
             }
 
-            StringBuilder summary = new StringBuilder();
-            summary.append("Đậu: ").append(soThiSinhTrungTuyen).append(", rớt: ").append(soThiSinhRot)
-                    .append(", nguyện vọng cập nhật: ").append(soNguyenVongCapNhat).append(", xét: ")
-                    .append(thiSinhCoNguyenVong.size()).append(", NV: ").append(tongNguyenVong).append('.');
+            // Trả về báo cáo
+            return String.format("Đậu: %d, rớt: %d, nguyện vọng cập nhật: %d, xét: %d, NV: %d.", 
+                    soThiSinhTrungTuyen, soThiSinhRot, soNguyenVongCapNhat, thiSinhCoNguyenVong.size(), tongNguyenVong);
 
-            return summary.toString();
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi xét nguyện vọng: " + e.getMessage(), e);
         }
