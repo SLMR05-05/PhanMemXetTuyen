@@ -28,6 +28,7 @@ public class BangQuyDoiPanel extends JPanel {
     private int currentPage = 1;
     private int totalRecords = 0;
 
+    private int lastSelectedRow = -1;
     private int pageSize = 7;
     private List<BangQuydoi> fullList = new ArrayList<>();
 
@@ -175,10 +176,15 @@ public class BangQuyDoiPanel extends JPanel {
 
         table = new JTable(model);
 
+        table.setUI(new javax.swing.plaf.basic.BasicTableUI());
         table.setRowSelectionAllowed(true);
         table.setColumnSelectionAllowed(false);
         table.setCellSelectionEnabled(false);
+
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setFocusable(false);
+        //table.setRowSelectionInterval(0, 0);
+        table.setDefaultEditor(Object.class, null);
 
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         table.setRowHeight(28);
@@ -192,7 +198,7 @@ public class BangQuyDoiPanel extends JPanel {
         table.getTableHeader().setForeground(Color.WHITE);
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        table.setSelectionBackground(new Color(225,240,255));
+        table.setSelectionBackground(new Color(184,207,229));
         table.setSelectionForeground(Color.BLACK);
         table.setGridColor(new Color(230,230,230));
         table.setShowVerticalLines(false);
@@ -215,10 +221,10 @@ public class BangQuyDoiPanel extends JPanel {
         table.setFillsViewportHeight(true);
         table.setShowHorizontalLines(true);
         table.setShowVerticalLines(false);
-        table.getTableHeader().setOpaque(false);
 
         scrollPane.getViewport().setBackground(Color.WHITE);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setPreferredSize(new Dimension(0, 320));
         add(scrollPane, BorderLayout.CENTER);
 
         // ===== PAGINATION =====
@@ -245,7 +251,27 @@ public class BangQuyDoiPanel extends JPanel {
         btnPrev.addActionListener(e -> prevPage());
         btnNext.addActionListener(e -> nextPage());
 
-        table.getSelectionModel().addListSelectionListener(e -> fillForm());
+        /*table.getSelectionModel().addListSelectionListener(e -> fillForm());
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                fillForm();
+            }
+        });*/
+        table.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int row = table.rowAtPoint(e.getPoint());
+                if (row == lastSelectedRow) {
+                    table.clearSelection();
+                    clearForm();
+                    lastSelectedRow = -1;
+                } else {
+                    lastSelectedRow = row;
+                    table.setRowSelectionInterval(row, row);
+                    fillForm();
+                }
+            }
+        });
             cbPhuongThuc.addActionListener(e -> filterData());
             cbToHop.addActionListener(e -> filterData());
 
@@ -384,21 +410,16 @@ public class BangQuyDoiPanel extends JPanel {
     // ===== LOAD =====
     private void loadData() {
     fullList = dao.findAll(BangQuydoi.class);
-
     if (fullList == null) fullList = new ArrayList<>();
-
     totalRecords = fullList.size();
     currentPage = 1; // reset về trang 1
-
     showPage();
 }
 
     private void showPage() {
         model.setRowCount(0);
-
         int start = (currentPage - 1) * pageSize;
         int end = Math.min(start + pageSize, fullList.size());
-
         for (int i = start; i < end; i++) {
             BangQuydoi b = fullList.get(i);
             model.addRow(new Object[]{
@@ -414,11 +435,8 @@ public class BangQuyDoiPanel extends JPanel {
                     b.getDPhanvi()
             });
         }
-
         int totalPages = (int) Math.ceil((double) fullList.size() / pageSize);
-
     lblPage.setText("Trang " + currentPage + " / " + totalPages);
-
     btnPrev.setEnabled(currentPage > 1);
     btnNext.setEnabled(currentPage < totalPages);
 
@@ -451,7 +469,6 @@ public class BangQuyDoiPanel extends JPanel {
             b.setDDiemB(getDouble(txtB));
             b.setDDiemC(getDouble(txtC));
             b.setDDiemD(getDouble(txtD));
-
             b.setDMaQuydoi(txtMaQD.getText());
             b.setDPhanvi(txtPhanVi.getText());
 
@@ -459,6 +476,9 @@ public class BangQuyDoiPanel extends JPanel {
             loadData();
             clearForm();
             loadComboBoxData();
+            clearSelectionAndForm();
+            table.clearSelection();
+            lastSelectedRow = -1;
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi thêm: " + e.getMessage());
         }
@@ -485,7 +505,9 @@ public class BangQuyDoiPanel extends JPanel {
             dao.update(b);
             loadData();
             loadComboBoxData();
-
+            clearSelectionAndForm();
+            table.clearSelection();
+            lastSelectedRow = -1;
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi sửa: " + e.getMessage());
         }
@@ -500,14 +522,16 @@ public class BangQuyDoiPanel extends JPanel {
             dao.delete(b);
             loadComboBoxData();
             loadData();
-            clearForm();
+            clearSelectionAndForm();
+            table.clearSelection();
+            lastSelectedRow = -1;
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi xóa: " + e.getMessage());
         }
     }
     private void fillForm() {
         int row = table.getSelectedRow();
-        if (row == -1) return;
+        if (row < 0) return;
         txtPhuongThuc.setText(model.getValueAt(row, 1).toString());
         txtTohop.setText(model.getValueAt(row, 2).toString());
         txtMon.setText(model.getValueAt(row, 3).toString());
@@ -612,4 +636,9 @@ public class BangQuyDoiPanel extends JPanel {
             currentPage = 1;
             showPage();
         }
+    private void clearSelectionAndForm() {
+        table.clearSelection();
+        lastSelectedRow = -1;
+        clearForm();
+    }
 }
